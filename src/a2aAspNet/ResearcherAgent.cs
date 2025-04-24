@@ -1,0 +1,105 @@
+
+namespace A2ALib;
+
+public class ResearcherAgent 
+{
+    private readonly TaskManager _taskManager;
+    private Dictionary<string, AgentState> _agentStates = new Dictionary<string, AgentState>();
+
+    private enum AgentState
+    {
+        Planning,
+        WaitingForFeedbackOnPlan,
+        Researching
+    }
+    public ResearcherAgent(TaskManager taskManager)
+    {
+        _taskManager = taskManager;
+        _taskManager.OnTaskCreated = async (task) => {
+            // Iinitialize the agent state for the task
+            _agentStates[task.Id] = AgentState.Planning;
+            // Ignore other content in the task, just assume it is a text message.
+            var message = ((TextPart)task.History.Last().Parts[0]).Text;
+            await Invoke(task.Id, message);
+         };
+         _taskManager.OnTaskUpdated = async (task) => {
+            // Note that the updated callback is helpful to know not to initialize the agent state again.
+            var message = ((TextPart)task.History.Last().Parts[0]).Text;
+            await Invoke(task.Id, message);
+         };
+    }
+
+    // This is the main entry point for the agent. It is called when a task is created or updated.
+    // It probably should have a cancellation token to enable the process to be cancelled.
+    public async Task Invoke(string taskId, string message) {
+
+        switch (_agentStates[taskId])
+        {
+            case AgentState.Planning:
+                await DoPlanning(taskId, message);
+                await _taskManager.UpdateStatus(taskId, TaskState.InputRequired, new Message()
+                    {
+                        Parts = [new TextPart() { Text = "When ready say go ahead" }],
+                    });
+                break;
+            case AgentState.WaitingForFeedbackOnPlan:
+                if (message == "go ahead")  // Dumb check for now to avoid using an LLM
+                {
+                    await DoResearch(taskId, message);
+                }
+                else
+                {
+                    // Take the message and redo planning
+                    await DoPlanning(taskId, message);
+                    await _taskManager.UpdateStatus(taskId, TaskState.InputRequired, new Message()
+                    {
+                        Parts = [new TextPart() { Text = "When ready say go ahead" }],
+                    });
+                }
+                break;
+            case AgentState.Researching:
+                await DoResearch(taskId, message);
+                break;
+        }
+    }
+
+    private async Task DoResearch(string taskId, string message)
+    {
+        _agentStates[taskId] = AgentState.Researching;
+        await _taskManager.UpdateStatus(taskId, TaskState.Working);
+
+        await _taskManager.ReturnArtifact(
+            new TaskIdParams() { Id = taskId },
+            new Artifact()
+            {
+                Parts = [new TextPart() { Text = $"{message} received." }],
+            });
+
+        await _taskManager.UpdateStatus(taskId, TaskState.Completed, new Message()
+        {
+            Parts = [new TextPart() { Text = "Task completed successfully" }],
+        });
+    }
+
+    private async Task DoPlanning(string taskId, string message)
+    {
+        // Task should be in status Submitted
+        // Simulate being in a queue for a while
+        await Task.Delay(1000);
+        // Simulate processing the task
+        await _taskManager.UpdateStatus(taskId, TaskState.Working);
+
+        await _taskManager.ReturnArtifact(
+            new TaskIdParams() { Id = taskId },
+            new Artifact()
+            {
+                Parts = [new TextPart() { Text = $"{message} received." }],
+            });
+
+        await _taskManager.UpdateStatus(taskId, TaskState.InputRequired, new Message()
+        {
+            Parts = [new TextPart() { Text = "When ready say go ahead" }],
+        });
+        _agentStates[taskId] = AgentState.WaitingForFeedbackOnPlan;
+    }
+}

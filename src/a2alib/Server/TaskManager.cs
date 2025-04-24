@@ -61,8 +61,14 @@ public class TaskManager
                 return CreateJsonRpcResponse(message, getPushNotification);
             case "task/sendsubscribe":
                 var taskSendParams = message.Params as TaskSendParams;
-                var sseItem = await SendSubscribeAsync(taskSendParams);
-                return CreateJsonRpcResponse(message, sseItem);  // TODO: This is not correct usage of SseItem
+                var taskUpdateEvents = await SendSubscribeAsync(taskSendParams);
+                // This loop probably needs to either be lifted up into A2AServer to the response object needs to passed down here
+                // This code below doesn't work
+                await foreach (var taskUpdateEvent in taskUpdateEvents)
+                {
+                    //CreateJsonRpcResponse(message, taskUpdateEvent);
+                }
+                return null;
             default:
                 throw new NotImplementedException($"Method {message.Method} not implemented.");
         }
@@ -134,7 +140,7 @@ public class TaskManager
         return task;
     }
 
-    public Task<SseItem<TaskUpdateEvent>> SendSubscribeAsync(TaskSendParams taskSendParams)
+    public Task<IAsyncEnumerable<TaskUpdateEvent>> SendSubscribeAsync(TaskSendParams taskSendParams)
     {
         throw new NotImplementedException();
     }
@@ -171,6 +177,8 @@ public class TaskManager
     public async Task UpdateStatus(string taskId, TaskState status, Message? message = null)
     {
         await _TaskStore.UpdateStatusAsync(taskId, status, message);
+        //TODO: Make callback notification if set by the client
+        //TODO: If open stream for the task return a TaskStatusUpdateEvent
     }
 
     /// <summary>
@@ -197,11 +205,15 @@ public class TaskManager
             }
             task.Artifacts.Add(artifact);
             await _TaskStore.SetTaskAsync(task);
+            //TODO: Make callback notification if set by the client
+            //TODO: If open stream for the task return a TaskStatusUpdateEvent
         }
         else
         {
             throw new ArgumentException("Task not found.");
         }
     }
+
+    // TODO: Implement UpdateArtifact method
 }
 
