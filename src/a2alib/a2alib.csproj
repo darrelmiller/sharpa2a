@@ -6,4 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="System.Net.ServerSentEvents" Version="9.0.4" />
+  </ItemGroup>
+
 </Project>
