@@ -1,7 +1,6 @@
 using System.Net;
 using A2ALib;
 using A2ATransport;
-using ModelContextProtocol.Protocol.Messages;
 using Json.Schema;
 using System.Text.Json;
 
@@ -148,7 +147,7 @@ public class MockMessageHandler : HttpMessageHandler
            RequestMessage = request,
            Content = new JsonRpcContent(new JsonRpcResponse()
            {
-               Id = RequestId.FromString("dummy-id"),
+               Id = "dummy-id",
                Result = new AgentTask()
                {
                    Id = "test-task",

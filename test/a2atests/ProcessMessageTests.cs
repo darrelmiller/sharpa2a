@@ -2,7 +2,6 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
-using ModelContextProtocol.Protocol.Messages;
 using A2ALib;
 
 public class ProcessMessageTests
@@ -22,7 +21,7 @@ public class ProcessMessageTests
         };
         var sendRequest = new JsonRpcRequest
         {
-            Id = RequestId.FromString(Guid.NewGuid().ToString()),
+            Id = Guid.NewGuid().ToString(),
             Method = "task/send",
             Params = sendParams
         };
@@ -35,7 +34,7 @@ public class ProcessMessageTests
 
         var getRequest = new JsonRpcRequest
         {
-            Id = RequestId.FromString(Guid.NewGuid().ToString()),
+            Id = Guid.NewGuid().ToString(),
             Method = "task/get",
             Params = new TaskIdParams { Id = taskId }
         };
@@ -62,7 +61,7 @@ public class ProcessMessageTests
         };
         var sendRequest = new JsonRpcRequest
         {
-            Id = RequestId.FromString(Guid.NewGuid().ToString()),
+            Id = Guid.NewGuid().ToString(),
             Method = "task/send",
             Params = sendParams
         };
@@ -70,7 +69,7 @@ public class ProcessMessageTests
 
         var cancelRequest = new JsonRpcRequest
         {
-            Id = RequestId.FromString(Guid.NewGuid().ToString()),
+            Id = Guid.NewGuid().ToString(),
             Method = "task/cancel",
             Params = new TaskIdParams { Id = taskId }
         };
@@ -96,7 +95,7 @@ public class ProcessMessageTests
         };
         var setRequest = new JsonRpcRequest
         {
-            Id = RequestId.FromString(Guid.NewGuid().ToString()),
+            Id = Guid.NewGuid().ToString(),
             Method = "task/pushnotification/set",
             Params = pushNotificationConfig
         };

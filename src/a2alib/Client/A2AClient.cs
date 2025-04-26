@@ -3,7 +3,6 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using A2ATransport;
-using ModelContextProtocol.Protocol.Messages;
 
 namespace A2ALib;
 
@@ -41,7 +40,7 @@ public class A2AClient : IA2AClient
     {
         var request = new JsonRpcRequest()
         {
-            Id = RequestId.FromString(Guid.NewGuid().ToString()),
+            Id = Guid.NewGuid().ToString(),
             Method = v,
             Params = taskSendParams
         };

@@ -1,7 +1,6 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using ModelContextProtocol.Protocol.Messages;
 
 namespace A2ATransport;
 

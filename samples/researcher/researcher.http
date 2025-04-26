@@ -22,3 +22,19 @@ Content-Type: application/json
     }
 }
 ###
+
+POST {{a2aAspNet_HostAddress}}/
+Accept: application/json
+Content-Type: application/json
+
+{
+    "id": "asdasdasd",
+    "jsonrpc": "2.0",
+    "method": "task/get",
+    "params": {
+        "taskIdParams": {
+            "Id": "asdasdasd"
+        }
+    }
+}
+###

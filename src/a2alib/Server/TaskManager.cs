@@ -3,8 +3,9 @@ using System.Net;
 using System.Net.ServerSentEvents;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
-using ModelContextProtocol.Protocol.Messages;
 
 namespace A2ALib;
 
@@ -34,12 +35,13 @@ public class TaskManager
     /// <summary>
     /// Dispatches the JSON RPC message to the appropriate handler based on the method name.
     /// </summary>
-   public async Task<IJsonRpcMessage> ProcessMessageAsync(JsonRpcRequest message, CancellationToken cancellationToken)
+   public async Task<JsonRpcResponse> ProcessMessageAsync(JsonRpcRequest message, CancellationToken cancellationToken)
     {
         switch(message.Method)
         {
             case "task/send":
-                var agentTask = await SendAsync((TaskSendParams)message.Params);
+                var taskSendParams = message.Params as TaskSendParams;
+                var agentTask = await SendAsync(taskSendParams);
                 return CreateJsonRpcResponse(message, agentTask);
 
             case "task/get":
@@ -57,10 +59,11 @@ public class TaskManager
                 var setPushNotification = await SetPushNotificationAsync(pushNotificationConfig);
                 return CreateJsonRpcResponse(message, setPushNotification);
             case "task/pushnotification/get":
-                var getPushNotification = await GetPushNotificationAsync(message.Params as TaskIdParams);
+                var taskIdParamsForPush = message.Params as TaskIdParams;
+                var getPushNotification = await GetPushNotificationAsync(taskIdParamsForPush);
                 return CreateJsonRpcResponse(message, getPushNotification);
             case "task/sendsubscribe":
-                var taskSendParams = message.Params as TaskSendParams;
+                taskSendParams = message.Params as TaskSendParams;
                 var taskUpdateEvents = await SendSubscribeAsync(taskSendParams);
                 // This loop probably needs to either be lifted up into A2AServer to the response object needs to passed down here
                 // This code below doesn't work
@@ -212,6 +215,36 @@ public class TaskManager
         {
             throw new ArgumentException("Task not found.");
         }
+    }
+
+    public static async Task<JsonRpcRequest> CreateJsonRpcRequestAsync(Stream stream, CancellationToken requestAborted)
+    {
+            var jsonNode = await JsonNode.ParseAsync(stream);
+            var message = JsonRpcRequest.Load(jsonNode);
+            switch (message.Method)
+            {
+                case "task/send":
+                    message.Params = JsonSerializer.Deserialize<TaskSendParams>((JsonNode)message.Params);
+                    break;
+                case "task/get":
+                    message.Params = JsonSerializer.Deserialize<TaskIdParams>((JsonNode)message.Params);
+                    break;
+                case "task/cancel":
+                    message.Params = JsonSerializer.Deserialize<TaskIdParams>((JsonNode)message.Params);
+                    break;
+                case "task/pushnotification/set":
+                    message.Params = JsonSerializer.Deserialize<TaskPushNotificationConfig>((JsonNode)message.Params);
+                    break;
+                case "task/pushnotification/get":
+                    message.Params = JsonSerializer.Deserialize<TaskIdParams>((JsonNode)message.Params);
+                    break;
+                case "task/sendsubscribe":
+                    message.Params = JsonSerializer.Deserialize<TaskSendParams>((JsonNode)message.Params);
+                    break;
+                default:
+                    throw new NotImplementedException($"Method {message.Method} not implemented.");
+            }
+            return message;
     }
 
     // TODO: Implement UpdateArtifact method

@@ -1,10 +1,10 @@
-using ModelContextProtocol.Protocol.Messages;
 using A2ALib;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Http;
+using System.Text.Json.Nodes;
 
 
 namespace A2ALib;
@@ -20,25 +20,23 @@ public static class A2ARouteBuilderExtensions
 
         routeGroup.MapPost("/", async context =>
         {
-            var message = await context.Request.ReadFromJsonAsync<IJsonRpcMessage>(context.RequestAborted);
-            if (message is not JsonRpcRequest)
-            {
-                await Results.BadRequest("No message in request body.").ExecuteAsync(context);
-                return;
-            }
+            var stream = context.Request.Body;
+            var message = await TaskManager.CreateJsonRpcRequestAsync(stream, context.RequestAborted);
 
-            var response = await taskManager.ProcessMessageAsync(message as JsonRpcRequest, context.RequestAborted);
-            if (response is JsonRpcError errorResponse)
-            {
-                context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                await context.Response.WriteAsJsonAsync(errorResponse);
-                return;
-            }
+            var response = await taskManager.ProcessMessageAsync(message, context.RequestAborted);
+
             if (response is JsonRpcResponse jsonRpcResponse)
             {
-                context.Response.StatusCode = StatusCodes.Status200OK;
-                await context.Response.WriteAsJsonAsync(jsonRpcResponse);
-                return;
+                if (jsonRpcResponse.Error != null)
+                {
+                    context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                    await context.Response.WriteAsJsonAsync(jsonRpcResponse);
+                    return;
+                } else {
+                    context.Response.StatusCode = StatusCodes.Status200OK;
+                    await context.Response.WriteAsJsonAsync(jsonRpcResponse);
+                    return;
+                }
             }
             context.Response.StatusCode = StatusCodes.Status500InternalServerError;
         });
