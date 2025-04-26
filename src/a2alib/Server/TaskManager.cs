@@ -54,7 +54,7 @@ public class TaskManager
 
             case "task/pushnotification/set":
                 var pushNotificationConfig = message.Params as TaskPushNotificationConfig;
-                var setPushNotification = SetPushNotificationAsync(pushNotificationConfig);
+                var setPushNotification = await SetPushNotificationAsync(pushNotificationConfig);
                 return CreateJsonRpcResponse(message, setPushNotification);
             case "task/pushnotification/get":
                 var getPushNotification = await GetPushNotificationAsync(message.Params as TaskIdParams);

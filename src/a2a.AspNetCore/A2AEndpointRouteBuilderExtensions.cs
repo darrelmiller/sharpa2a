@@ -1,9 +1,15 @@
 using ModelContextProtocol.Protocol.Messages;
 using A2ALib;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Http;
 
-namespace A2ATransport;
 
-public static class McpEndpointRouteBuilderExtensions
+namespace A2ALib;
+
+public static class A2ARouteBuilderExtensions
 {
     public static IEndpointConventionBuilder MapA2A(this IEndpointRouteBuilder endpoints, TaskManager taskManager)
     {

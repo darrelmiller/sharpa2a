@@ -1,8 +1,10 @@
-﻿using ModelContextProtocol.Protocol.Messages;
+﻿using A2ALib;
+using ModelContextProtocol.Protocol.Messages;
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-
+using System.Text.Json.Serialization.Metadata;
 namespace ModelContextProtocol.Utils.Json;
 
 /// <summary>

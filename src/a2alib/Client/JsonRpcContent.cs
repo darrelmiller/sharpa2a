@@ -15,6 +15,11 @@ public class JsonRpcContent : HttpContent
         _bytes = Encoding.UTF8.GetBytes(json);
 
     }
+    public JsonRpcContent(JsonRpcResponse response)
+    {
+        var json = JsonSerializer.Serialize(response);
+        _bytes = Encoding.UTF8.GetBytes(json);
+    }
 
     protected override void SerializeToStream(Stream stream, TransportContext? context, CancellationToken cancellationToken)
     {

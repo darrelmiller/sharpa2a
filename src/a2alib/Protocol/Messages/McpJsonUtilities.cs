@@ -1,4 +1,5 @@
-﻿using ModelContextProtocol.Protocol.Messages;
+﻿using A2ALib;
+using ModelContextProtocol.Protocol.Messages;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -89,6 +90,12 @@ public static partial class McpJsonUtilities
     [JsonSerializable(typeof(JsonRpcResponse))]
     [JsonSerializable(typeof(JsonRpcError))]
 
+    // MCP Request Params / Results
+    [JsonSerializable(typeof(TaskSendParams))]
+    [JsonSerializable(typeof(TaskIdParams))]
+    [JsonSerializable(typeof(TaskPushNotificationConfig))]
+    [JsonSerializable(typeof(TaskUpdateEvent))]
+    [JsonSerializable(typeof(IReadOnlyDictionary<string, object>))]
 
     [ExcludeFromCodeCoverage]
     internal sealed partial class JsonContext : JsonSerializerContext;

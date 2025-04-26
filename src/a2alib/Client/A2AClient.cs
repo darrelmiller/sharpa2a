@@ -41,6 +41,7 @@ public class A2AClient : IA2AClient
     {
         var request = new JsonRpcRequest()
         {
+            Id = RequestId.FromString(Guid.NewGuid().ToString()),
             Method = v,
             Params = taskSendParams
         };

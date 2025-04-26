@@ -1,0 +1,24 @@
+@a2aAspNet_HostAddress = http://localhost:5048
+
+POST {{a2aAspNet_HostAddress}}/
+Accept: application/json
+Content-Type: application/json
+
+{
+    "id": "asdasdasd",
+    "jsonrpc": "2.0",
+    "method": "task/send",
+    "params": {
+        "taskSendParams": {
+            "message": {
+                "parts": [
+                    {
+                        "type": "text",
+                        "text": "Hello, world!"
+                    }
+                ]
+            }
+        }
+    }
+}
+###
