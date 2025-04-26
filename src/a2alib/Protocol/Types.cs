@@ -19,7 +19,13 @@ public enum TaskState {
     Unknown
 }
 
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
+[JsonDerivedType(typeof(TextPart), typeDiscriminator: "text")]
+[JsonDerivedType(typeof(FilePart), typeDiscriminator: "file")]
+[JsonDerivedType(typeof(DataPart), typeDiscriminator: "data")]
 public abstract class Part {}
+
+
 public class TextPart : Part {
     [JsonPropertyName("type")]
     public string Type { get; set; } = "text";

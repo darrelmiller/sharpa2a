@@ -3,11 +3,10 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.AspNetCore.Http;
-using System.Text.Json.Nodes;
 
 
-namespace A2ALib;
+namespace A2ATransport;
+
 
 public static class A2ARouteBuilderExtensions
 {
@@ -18,27 +17,19 @@ public static class A2ARouteBuilderExtensions
 
         var routeGroup = endpoints.MapGroup("");
 
-        routeGroup.MapPost("/", async context =>
+        routeGroup.MapPost("/", requestDelegate: async context =>
         {
             var stream = context.Request.Body;
-            var message = await TaskManager.CreateJsonRpcRequestAsync(stream, context.RequestAborted);
+            var rpcRequest = await A2AProcessor.CreateJsonRpcRequestAsync(stream, context.RequestAborted);
 
-            var response = await taskManager.ProcessMessageAsync(message, context.RequestAborted);
-
-            if (response is JsonRpcResponse jsonRpcResponse)
+            if (rpcRequest.Method == A2AMethods.TaskSendSubscribe)
             {
-                if (jsonRpcResponse.Error != null)
-                {
-                    context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                    await context.Response.WriteAsJsonAsync(jsonRpcResponse);
-                    return;
-                } else {
-                    context.Response.StatusCode = StatusCodes.Status200OK;
-                    await context.Response.WriteAsJsonAsync(jsonRpcResponse);
-                    return;
-                }
+                await A2AProcessor.StreamResponse(taskManager, context, rpcRequest);
             }
-            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+            else
+            {
+                await A2AProcessor.SingleResponse(taskManager, context, rpcRequest);
+            }
         });
 
         return routeGroup;

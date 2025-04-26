@@ -21,10 +21,19 @@ public class TaskManagerTests
                 ]
             },
         };
+        string messageReceived = string.Empty;
+        taskManager.OnTaskCreated = (task) =>
+        {
+            messageReceived = (task.History.Last().Parts[0] as TextPart).Text;
+        };
         var task = await taskManager.SendAsync(taskSendParams);
         Assert.NotNull(task);
         Assert.Equal("testTask", task.Id);
         Assert.Equal(TaskState.Submitted, task.Status.State);
+        Assert.Equal(1, task.History.Count);
+        Assert.Equal("Hello, World!", (task.History[0].Parts[0] as TextPart).Text);
+        Assert.Equal("Hello, World!", messageReceived);
+
     }
 
 

@@ -17,6 +17,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 TaskManager? taskManager = new();
+var researcherAgent = new ResearcherAgent(taskManager);
 
 app.MapA2A(taskManager);
 

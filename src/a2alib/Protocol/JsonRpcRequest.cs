@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
+
 public class JsonRpcRequest
 {
     public string JsonRpc { get; set; } = "2.0";

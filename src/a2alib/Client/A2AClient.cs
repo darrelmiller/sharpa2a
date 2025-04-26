@@ -17,7 +17,7 @@ public class A2AClient : IA2AClient
 
     public async Task<AgentTask?> Send(TaskSendParams taskSendParams)
     {
-        return await RpcRequest<TaskSendParams,AgentTask?>(taskSendParams, "task/send");
+        return await RpcRequest<TaskSendParams,AgentTask?>(taskSendParams, A2AMethods.TaskSend);
     }
     public async Task<AgentTask?> GetTask(string taskId) {
         return await RpcRequest<TaskSendParams,AgentTask?>(new TaskSendParams() { Id = taskId }, "task/get");

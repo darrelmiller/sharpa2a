@@ -32,61 +32,6 @@ public class TaskManager
         _TaskStore = taskStore ?? new InMemoryTaskStore();
     }
 
-    /// <summary>
-    /// Dispatches the JSON RPC message to the appropriate handler based on the method name.
-    /// </summary>
-   public async Task<JsonRpcResponse> ProcessMessageAsync(JsonRpcRequest message, CancellationToken cancellationToken)
-    {
-        switch(message.Method)
-        {
-            case "task/send":
-                var taskSendParams = message.Params as TaskSendParams;
-                var agentTask = await SendAsync(taskSendParams);
-                return CreateJsonRpcResponse(message, agentTask);
-
-            case "task/get":
-                var taskIdParams = message.Params as TaskIdParams;
-                var task = await GetTaskAsync(taskIdParams);
-                return CreateJsonRpcResponse(message, task);
-
-            case "task/cancel":
-                var cancelTaskIdParams = message.Params as TaskIdParams;
-                var canceledTask = await CancelTaskAsync(cancelTaskIdParams);
-                return CreateJsonRpcResponse(message, canceledTask);
-
-            case "task/pushnotification/set":
-                var pushNotificationConfig = message.Params as TaskPushNotificationConfig;
-                var setPushNotification = await SetPushNotificationAsync(pushNotificationConfig);
-                return CreateJsonRpcResponse(message, setPushNotification);
-            case "task/pushnotification/get":
-                var taskIdParamsForPush = message.Params as TaskIdParams;
-                var getPushNotification = await GetPushNotificationAsync(taskIdParamsForPush);
-                return CreateJsonRpcResponse(message, getPushNotification);
-            case "task/sendsubscribe":
-                taskSendParams = message.Params as TaskSendParams;
-                var taskUpdateEvents = await SendSubscribeAsync(taskSendParams);
-                // This loop probably needs to either be lifted up into A2AServer to the response object needs to passed down here
-                // This code below doesn't work
-                await foreach (var taskUpdateEvent in taskUpdateEvents)
-                {
-                    //CreateJsonRpcResponse(message, taskUpdateEvent);
-                }
-                return null;
-            default:
-                throw new NotImplementedException($"Method {message.Method} not implemented.");
-        }
-    }
-
-    private static JsonRpcResponse CreateJsonRpcResponse<T>(JsonRpcRequest message, T result)
-    {
-        return new JsonRpcResponse()
-        {
-            Id = message.Id,
-            Result = result,
-            JsonRpc = "2.0"
-        };
-    }
-
     public async Task<AgentTask?> CancelTaskAsync(TaskIdParams? taskIdParams)
     {
         var task = await _TaskStore.GetTaskAsync(taskIdParams.Id);
@@ -125,10 +70,10 @@ public class TaskManager
             {
                 Id = taskSendParams.Id,
                 SessionId = taskSendParams.SessionId,
+                History = [taskSendParams.Message],
                 Status = new AgentTaskStatus()
                 {
                     State = TaskState.Submitted,
-                    Message = taskSendParams.Message,
                     Timestamp = DateTime.UtcNow
                 },
                 Metadata = taskSendParams.Metadata
@@ -216,37 +161,6 @@ public class TaskManager
             throw new ArgumentException("Task not found.");
         }
     }
-
-    public static async Task<JsonRpcRequest> CreateJsonRpcRequestAsync(Stream stream, CancellationToken requestAborted)
-    {
-            var jsonNode = await JsonNode.ParseAsync(stream);
-            var message = JsonRpcRequest.Load(jsonNode);
-            switch (message.Method)
-            {
-                case "task/send":
-                    message.Params = JsonSerializer.Deserialize<TaskSendParams>((JsonNode)message.Params);
-                    break;
-                case "task/get":
-                    message.Params = JsonSerializer.Deserialize<TaskIdParams>((JsonNode)message.Params);
-                    break;
-                case "task/cancel":
-                    message.Params = JsonSerializer.Deserialize<TaskIdParams>((JsonNode)message.Params);
-                    break;
-                case "task/pushnotification/set":
-                    message.Params = JsonSerializer.Deserialize<TaskPushNotificationConfig>((JsonNode)message.Params);
-                    break;
-                case "task/pushnotification/get":
-                    message.Params = JsonSerializer.Deserialize<TaskIdParams>((JsonNode)message.Params);
-                    break;
-                case "task/sendsubscribe":
-                    message.Params = JsonSerializer.Deserialize<TaskSendParams>((JsonNode)message.Params);
-                    break;
-                default:
-                    throw new NotImplementedException($"Method {message.Method} not implemented.");
-            }
-            return message;
-    }
-
     // TODO: Implement UpdateArtifact method
 }
 
