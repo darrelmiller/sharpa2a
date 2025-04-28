@@ -5,19 +5,19 @@ Accept: application/json
 Content-Type: application/json
 
 {
-    "id": "asdasdasd",
+    "id": "1",
     "jsonrpc": "2.0",
     "method": "task/send",
     "params": {
-        "taskSendParams": {
-            "message": {
-                "parts": [
-                    {
-                        "type": "text",
-                        "text": "Hello, world!"
-                    }
-                ]
-            }
+        "id": "asdasdasd",
+        "message": {
+            "role": "user",
+            "parts": [
+                {
+                    "type": "text",
+                    "text": "Hello, world!"
+                }
+            ]
         }
     }
 }
@@ -28,13 +28,11 @@ Accept: application/json
 Content-Type: application/json
 
 {
-    "id": "asdasdasd",
+    "id": "2",
     "jsonrpc": "2.0",
     "method": "task/get",
     "params": {
-        "taskIdParams": {
-            "Id": "asdasdasd"
-        }
+        "id": "asdasdasd"
     }
 }
 ###

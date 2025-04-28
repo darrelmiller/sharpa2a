@@ -4,11 +4,13 @@ using A2ATransport;
 using Json.Schema;
 using System.Text.Json;
 
-public class MessageTests : IClassFixture<JsonSchemaFixture> {
+namespace A2ATests;
+
+public class ClientTests : IClassFixture<JsonSchemaFixture> {
 
      private readonly JsonSchema a2aSchema;
 
-    public MessageTests(JsonSchemaFixture fixture) {
+    public ClientTests(JsonSchemaFixture fixture) {
         a2aSchema = fixture.Schema;
     }
     
@@ -148,10 +150,7 @@ public class MockMessageHandler : HttpMessageHandler
            Content = new JsonRpcContent(new JsonRpcResponse()
            {
                Id = "dummy-id",
-               Result = new AgentTask()
-               {
-                   Id = "test-task",
-               }
+               Result = null,
            })
         };
         return Task.FromResult(response);

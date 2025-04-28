@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -6,28 +7,34 @@ namespace A2ATransport;
 
 public class JsonRpcContent : HttpContent
 {
-    private readonly byte[] _bytes;
+    private readonly Stream stream;
 
     public JsonRpcContent(JsonRpcRequest request)
     {
-        var json = JsonSerializer.Serialize(request);
-        _bytes = Encoding.UTF8.GetBytes(json);
-
+        // Serialize the request to JSON and convert it to a byte array
+        stream = new MemoryStream();
+        var writer = new Utf8JsonWriter(stream);
+        request.Write(writer);
+        writer.Flush();
+        stream.Position = 0;
     }
     public JsonRpcContent(JsonRpcResponse response)
     {
-        var json = JsonSerializer.Serialize(response);
-        _bytes = Encoding.UTF8.GetBytes(json);
+        // Serialize the response to JSON and convert it to a byte array
+        stream = new MemoryStream();
+        var writer = new Utf8JsonWriter(stream);
+        response.Write(writer);
+        writer.Flush();
+        stream.Position = 0;
     }
 
     protected override void SerializeToStream(Stream stream, TransportContext? context, CancellationToken cancellationToken)
     {
-        stream.Write(_bytes, 0, _bytes.Length);
+        this.stream.CopyTo(stream);
     }
-    protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context, CancellationToken cancellationToken)
+    protected override async Task SerializeToStreamAsync(Stream stream, TransportContext? context, CancellationToken cancellationToken)
     {
-        SerializeToStream(stream, context, cancellationToken);
-        return Task.CompletedTask;
+        await this.stream.CopyToAsync(stream, cancellationToken);
     }
 
     protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context)
@@ -38,7 +45,7 @@ public class JsonRpcContent : HttpContent
 
     protected override bool TryComputeLength(out long length)
     {
-        length = _bytes.Length;
+        length = stream.Length;
         return true;
     }
 }

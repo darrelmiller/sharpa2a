@@ -1,7 +1,6 @@
 using System.Text.Json;
-using System.Text.Json.Nodes;
-using System.Text.Json.Serialization.Metadata;
 using A2ALib;
+using DomFactory;
 using Microsoft.AspNetCore.Http;
 
 namespace A2ATransport;
@@ -9,58 +8,85 @@ namespace A2ATransport;
 public static class A2AProcessor
 {
 
-    internal static async Task SingleResponse(TaskManager taskManager, HttpContext context, JsonRpcRequest message)
+    internal static async Task<JsonRpcResponse> SingleResponse(TaskManager taskManager, HttpContext context, string requestId, string method, IJsonRpcParams? parameters)
     {
         JsonRpcResponse? response = null;
 
-        switch (message.Method)
+        if (parameters == null)
+        {
+            response = new JsonRpcResponse()
+            {
+                Id = requestId,
+                Error = new JsonRpcError()
+                {
+                    Code = -32602,
+                    Message = "Invalid params"
+                },
+                JsonRpc = "2.0"
+            };
+            return response;
+        }
+
+        switch (method)
         {
             case A2AMethods.TaskSend:
-                var agentTask = await taskManager.SendAsync(message.Params as TaskSendParams);
-                response = CreateJsonRpcResponse(message, agentTask);
+
+                var agentTask = await taskManager.SendAsync((TaskSendParams)parameters);
+                response = CreateJsonRpcResponse(requestId, agentTask);
                 break;
             case A2AMethods.TaskGet:
-                var getAgentTask = await taskManager.GetTaskAsync(message.Params as TaskIdParams);
-                response = CreateJsonRpcResponse(message, getAgentTask);
+                var getAgentTask = await taskManager.GetTaskAsync((TaskIdParams)parameters);
+                response = CreateJsonRpcResponse(requestId, getAgentTask);
                 break;
             case A2AMethods.TaskCancel:
-                var cancelledTask = await taskManager.CancelTaskAsync(message.Params as TaskIdParams);
-                response = CreateJsonRpcResponse(message, cancelledTask);
+                var cancelledTask = await taskManager.CancelTaskAsync((TaskIdParams)parameters);
+                response = CreateJsonRpcResponse(requestId, cancelledTask);
                 break;
             case A2AMethods.TaskPushNotificationConfigSet:
-                var setConfig = await taskManager.SetPushNotificationAsync(message.Params as TaskPushNotificationConfig);
-                response = CreateJsonRpcResponse(message, setConfig);
+                var setConfig = await taskManager.SetPushNotificationAsync((TaskPushNotificationConfig)parameters);
+                response = CreateJsonRpcResponse(requestId, setConfig);
                 break;
             case A2AMethods.TaskPushNotificationConfigGet:
-                var getConfig = await taskManager.GetPushNotificationAsync(message.Params as TaskIdParams);
-                response = CreateJsonRpcResponse(message, getConfig);
-                break;
-            case A2AMethods.TaskSendSubscribe:
+                var getConfig = await taskManager.GetPushNotificationAsync((TaskIdParams)parameters);
+                response = CreateJsonRpcResponse(requestId, getConfig);
                 break;
             default:
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                response = new JsonRpcResponse()
+                {
+                    Id = requestId,
+                    Error = new JsonRpcError()
+                    {
+                        Code = -32601,
+                        Message = "Method not found"
+                    },
+                    JsonRpc = "2.0"
+                };
                 break;
         }
 
-        if (response is JsonRpcResponse jsonRpcResponse)
-        {
-            context.Response.ContentType = "application/json";
-            if (jsonRpcResponse.Error != null)
-            {
-                context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                await context.Response.WriteAsJsonAsync(jsonRpcResponse);
-            }
-            else
-            {
-                context.Response.StatusCode = StatusCodes.Status200OK;
-                await context.Response.WriteAsJsonAsync(jsonRpcResponse);
-            }
-        }
+        return response;
     }
 
     internal static async Task StreamResponse(TaskManager taskManager, HttpContext context, JsonRpcRequest message)
     {
-        var taskEvents = await taskManager.SendSubscribeAsync(message.Params as TaskSendParams);
+        if (message.Params == null)
+        {
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+            await context.Response.WriteAsJsonAsync(new JsonRpcResponse()
+            {
+                Id = message.Id,
+                Error = new JsonRpcError()
+                {
+                    Code = -32602,
+                    Message = "Invalid params"
+                },
+                JsonRpc = "2.0"
+            });
+            return;
+        }
+
+        var taskEvents = await taskManager.SendSubscribeAsync((TaskSendParams)message.Params);
         context.Response.ContentType = "text/event-stream";
         context.Response.StatusCode = StatusCodes.Status200OK;
 
@@ -72,42 +98,19 @@ public static class A2AProcessor
         await context.Response.CompleteAsync();
     }
 
-    internal static async Task<JsonRpcRequest> CreateJsonRpcRequestAsync(Stream stream, CancellationToken requestAborted)
+    internal static async Task<JsonRpcRequest> ParseJsonRpcRequestAsync(ValidationContext validationContext,Stream stream, CancellationToken requestAborted)
     {
-
-            var jsonNode = await JsonNode.ParseAsync(stream);
-            var message = JsonRpcRequest.Load(jsonNode);
-            switch (message.Method)
-            {
-                case A2AMethods.TaskSend:
-                    message.Params = JsonSerializer.Deserialize<TaskSendParams>((JsonNode)message.Params);
-                    break;
-                case A2AMethods.TaskGet:
-                    message.Params = JsonSerializer.Deserialize<TaskIdParams>((JsonNode)message.Params);
-                    break;
-                case A2AMethods.TaskCancel:
-                    message.Params = JsonSerializer.Deserialize<TaskIdParams>((JsonNode)message.Params);
-                    break;
-                case A2AMethods.TaskPushNotificationConfigSet:
-                    message.Params = JsonSerializer.Deserialize<TaskPushNotificationConfig>((JsonNode)message.Params);
-                    break;
-                case A2AMethods.TaskPushNotificationConfigGet:
-                    message.Params = JsonSerializer.Deserialize<TaskIdParams>((JsonNode)message.Params);
-                    break;
-                case A2AMethods.TaskSendSubscribe:
-                    message.Params = JsonSerializer.Deserialize<TaskSendParams>((JsonNode)message.Params);
-                    break;
-                default:
-                    throw new NotImplementedException($"Method {message.Method} not implemented.");
-            }
-            return message;
+        var doc = await JsonDocument.ParseAsync(stream, cancellationToken: requestAborted);
+        var message = JsonRpcRequest.Load(doc.RootElement, validationContext);
+        return message;
     }
 
-    private static JsonRpcResponse CreateJsonRpcResponse<T>(JsonRpcRequest message, T result)
+
+    private static JsonRpcResponse CreateJsonRpcResponse<T>(string requestId, T result) where T : IJsonRpcResult?
     {
         return new JsonRpcResponse()
         {
-            Id = message.Id,
+            Id = requestId,
             Result = result,
             JsonRpc = "2.0"
         };
