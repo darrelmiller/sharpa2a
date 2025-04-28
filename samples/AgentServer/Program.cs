@@ -17,12 +17,6 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-var researcherAgent = new ResearcherAgent();
-
-var researcherTaskManager = new TaskManager();
-researcherAgent.Attach(researcherTaskManager);
-app.MapA2A(researcherTaskManager,"/researcher");
-
 var echoAgent = new EchoAgent();
 var echoTaskManager = new TaskManager();
 echoAgent.Attach(echoTaskManager);
@@ -32,6 +26,11 @@ var hostedClientAgent = new HostedClientAgent();
 var hostedClientTaskManager = new TaskManager();
 hostedClientAgent.Attach(hostedClientTaskManager);
 app.MapA2A(hostedClientTaskManager,"/hostedclient");
+
+var researcherAgent = new ResearcherAgent();
+var researcherTaskManager = new TaskManager();
+researcherAgent.Attach(researcherTaskManager);
+app.MapA2A(researcherTaskManager,"/researcher");
 
 app.Run();
 
