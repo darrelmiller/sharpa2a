@@ -13,14 +13,14 @@ namespace A2ATransport;
 
 public static class A2ARouteBuilderExtensions
 {
-    public static IEndpointConventionBuilder MapA2A(this IEndpointRouteBuilder endpoints, TaskManager taskManager)
+    public static IEndpointConventionBuilder MapA2A(this IEndpointRouteBuilder endpoints, TaskManager taskManager, string path)
     {
 
         var loggerFactory = endpoints.ServiceProvider.GetRequiredService<ILoggerFactory>();
 
         var routeGroup = endpoints.MapGroup("");
 
-        routeGroup.MapPost("/", requestDelegate: async context =>
+        routeGroup.MapPost(path, requestDelegate: async context =>
         {
             var validationContext = new ValidationContext("1.0");
             // Parse generic JSON-RPC request

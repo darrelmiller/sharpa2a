@@ -15,7 +15,7 @@ Content-Type: application/json
             "parts": [
                 {
                     "type": "text",
-                    "text": "Hello, world!"
+                    "text": "go ahead"
                 }
             ]
         }

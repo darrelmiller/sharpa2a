@@ -3,7 +3,7 @@ namespace A2ALib;
 
 public class ResearcherAgent 
 {
-    private readonly TaskManager _taskManager;
+    private TaskManager _taskManager;
     private Dictionary<string, AgentState> _agentStates = new Dictionary<string, AgentState>();
 
     private enum AgentState
@@ -12,7 +12,8 @@ public class ResearcherAgent
         WaitingForFeedbackOnPlan,
         Researching
     }
-    public ResearcherAgent(TaskManager taskManager)
+
+    public void Attach(TaskManager taskManager)
     {
         _taskManager = taskManager;
         _taskManager.OnTaskCreated = async (task) => {

@@ -1,0 +1,135 @@
+@host = http://localhost:5048
+
+### Send an task to the echo agent
+POST {{host}}/echo
+Content-Type: application/json
+
+{
+    "id": "3",
+    "jsonrpc": "2.0",
+    "method": "task/send",
+    "params": {
+        "id": "1234",
+        "message": {
+            "role": "user",
+            "parts": [
+                {
+                    "type": "text",
+                    "text": "Hello, world!"
+                }
+            ]
+        }
+    }
+}
+
+###
+POST {{host}}/echo
+Content-Type: application/json
+
+{
+    "id": "3",
+    "jsonrpc": "2.0",
+    "method": "task/get",
+    "params": {
+        "id": "1234"
+        }
+}
+
+
+### Send an task to the echo agent
+POST {{host}}/hostedclient
+Content-Type: application/json
+
+{
+    "id": "3",
+    "jsonrpc": "2.0",
+    "method": "task/send",
+    "params": {
+        "id": "1234",
+        "message": {
+            "role": "user",
+            "parts": [
+                {
+                    "type": "text",
+                    "text": "Hello, world!"
+                }
+            ]
+        }
+    }
+}
+
+###
+POST {{host}}/hostedclient
+Content-Type: application/json
+
+{
+    "id": "3",
+    "jsonrpc": "2.0",
+    "method": "task/get",
+    "params": {
+        "id": "1234"
+        }
+}
+
+
+
+###  Create a new task for the researcher agent
+POST {{host}}/researcher
+Accept: application/json
+Content-Type: application/json
+
+{
+    "id": "1",
+    "jsonrpc": "2.0",
+    "method": "task/send",
+    "params": {
+        "id": "asdasdasd",
+        "message": {
+            "role": "user",
+            "parts": [
+                {
+                    "type": "text",
+                    "text": "Research the current price of butter"
+                }
+            ]
+        }
+    }
+}
+
+###  Retrieve a task
+
+POST {{host}}/researcher
+Accept: application/json
+Content-Type: application/json
+
+{
+    "id": "2",
+    "jsonrpc": "2.0",
+    "method": "task/get",
+    "params": {
+        "id": "asdasdasd"
+    }
+}
+
+###  Create a new task for the researcher agent
+POST {{host}}/researcher
+Accept: application/json
+Content-Type: application/json
+
+{
+    "id": "1",
+    "jsonrpc": "2.0",
+    "method": "task/send",
+    "params": {
+        "id": "asdasdasd",
+        "message": {
+            "role": "user",
+            "parts": [
+                {
+                    "type": "text",
+                    "text": "go ahead"
+                }
+            ]
+        }
+    }
+}

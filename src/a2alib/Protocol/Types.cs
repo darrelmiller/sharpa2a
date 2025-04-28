@@ -271,7 +271,7 @@ public class AgentTaskStatus {
     }
 
     private static readonly FixedFieldMap<AgentTaskStatus> _handlers = new() {
-            { new("state"), (ctx, o, e) => o.State = (TaskState)Enum.Parse(typeof(TaskState), e.Value.GetString()!) },
+            { new("state"), (ctx, o, e) => o.State = ParsingHelpers.ParseEnums<TaskState>(e.Value, "state", "AgentState", ctx) },
             { new("message"), (ctx, o, e) => o.Message = Message.Load(e.Value, ctx) },
             { new("timestamp"), (ctx, o, e) => o.Timestamp = e.Value.GetDateTime() }
         };

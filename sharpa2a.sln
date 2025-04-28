@@ -13,7 +13,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "a2aAspNet", "src\a2a.AspNet
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{402C1323-6567-472E-88A9-2271D8A66AC9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "researcher", "samples\researcher\researcher.csproj", "{CC0EEE4D-CF54-4AF9-AAA6-E91209973D1E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "researcher", "samples\AgentServer\AgentServer.csproj", "{CC0EEE4D-CF54-4AF9-AAA6-E91209973D1E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DomFactory", "src\DomFactory\DomFactory.csproj", "{1E97DADA-DA27-4D1D-A245-D787236C2D2B}"
 EndProject

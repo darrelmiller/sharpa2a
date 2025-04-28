@@ -70,8 +70,8 @@ public class A2AClient : IA2AClient
             _resultHandlers.TryGetValue(typeof(T), out var handler);
             if (handler != null)
             {
-                var incomingParams = (IJsonRpcIncomingParams)jsonRpcResponse.Result;
-                return (T)handler(incomingParams.Value, validationContext);
+                var incomingResult = (IJsonRpcIncomingResult)jsonRpcResponse.Result;
+                return (T)handler(incomingResult.Value, validationContext);
             }
             else
             {
