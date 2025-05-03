@@ -24,14 +24,14 @@ public class InMemoryTaskStore : ITaskStore
         return Task.FromResult<TaskPushNotificationConfig?>(null);
     }
 
-    public Task UpdateStatusAsync(string taskId, TaskState status, Message? message = null)
+    public Task<AgentTaskStatus> UpdateStatusAsync(string taskId, TaskState status, Message? message = null)
     {
         if (_TaskCache.TryGetValue(taskId, out var task))
         {
             task.Status.State = status;
             task.Status.Message = message;
             task.Status.Timestamp = DateTime.UtcNow;
-            return Task.CompletedTask;
+            return Task.FromResult(task.Status);
         }
         else
         {
@@ -39,7 +39,7 @@ public class InMemoryTaskStore : ITaskStore
         }
     }
 
-    public async Task SetTaskAsync(AgentTask task)
+    public Task SetTaskAsync(AgentTask task)
     {
         if (_TaskCache.ContainsKey(task.Id))
         {
@@ -49,6 +49,7 @@ public class InMemoryTaskStore : ITaskStore
         {
             _TaskCache.Add(task.Id, task);
         }
+        return Task.CompletedTask;
     }
 
     public async Task SetPushNotificationConfigAsync(TaskPushNotificationConfig pushNotificationConfig)

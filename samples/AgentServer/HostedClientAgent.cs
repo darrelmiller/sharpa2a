@@ -25,6 +25,8 @@ public class HostedClientAgent
             throw new Exception("TaskManager is not attached.");
         }
 
+        await _TaskManager.UpdateStatusAsync(task.Id, TaskState.Working);
+
         // Get message from the user to HostedClientAgent
         var userMessage = task.History!.Last().Parts.First().AsTextPart().Text;
         var echoTask = await echoClient.Send(new TaskSendParams() {
@@ -44,6 +46,7 @@ public class HostedClientAgent
                 Text = $"EchoAgent said: {message}"
             }]
         };
-        await _TaskManager.ReturnArtifact(new TaskIdParams() {Id = task.Id}, artifact);
+        await _TaskManager.ReturnArtifactAsync(new TaskIdParams() {Id = task.Id}, artifact);
+        await _TaskManager.UpdateStatusAsync(task.Id, TaskState.Completed);
     }
 }

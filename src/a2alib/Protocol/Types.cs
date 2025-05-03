@@ -419,7 +419,6 @@ public abstract class TaskUpdateEvent : IJsonRpcOutgoingResult {
     }
 
     public void WriteBase(Utf8JsonWriter writer) {
-        writer.WriteStartObject();
         writer.WriteString("id", Id);
         if (SessionId != null) {
             writer.WriteString("sessionId", SessionId);
@@ -433,7 +432,6 @@ public abstract class TaskUpdateEvent : IJsonRpcOutgoingResult {
             }
             writer.WriteEndObject();
         }
-        writer.WriteEndObject();
     }
 
     public abstract void Write(Utf8JsonWriter writer);
@@ -480,7 +478,10 @@ public class TaskArtifactUpdateEvent : TaskUpdateEvent {
     public override void Write(Utf8JsonWriter writer) {
         writer.WriteStartObject();
         WriteBase(writer);
-        Artifact.Writer(writer);
+        if (Artifact != null) {
+            writer.WritePropertyName("artifact");
+            Artifact.Writer(writer);
+        }
         writer.WriteEndObject();
     }
 

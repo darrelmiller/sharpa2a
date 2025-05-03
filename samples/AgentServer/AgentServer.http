@@ -9,7 +9,7 @@ Content-Type: application/json
     "jsonrpc": "2.0",
     "method": "task/send",
     "params": {
-        "id": "1234",
+        "id": "12345",
         "message": {
             "role": "user",
             "parts": [
@@ -22,6 +22,8 @@ Content-Type: application/json
     }
 }
 
+## curl -N -X POST http://localhost:5048/echo -H "Content-Type: application/json" -d '{ "id": "3","jsonrpc": "2.0","method": "task/sendsubscribe","params": {"id": "1234","message": {"role": "user","parts": [{"type": "text","text": "Hello, world!"}]}}}'
+
 ###
 POST {{host}}/echo
 Content-Type: application/json
@@ -31,10 +33,31 @@ Content-Type: application/json
     "jsonrpc": "2.0",
     "method": "task/get",
     "params": {
-        "id": "1234"
+        "id": "12345"
         }
 }
 
+### SendSubscribe a task to the echo agent
+POST {{host}}/echo
+Content-Type: application/json
+
+{
+    "id": "3",
+    "jsonrpc": "2.0",
+    "method": "task/sendsubscribe",
+    "params": {
+        "id": "sendsubscribeTaskId3",
+        "message": {
+            "role": "user",
+            "parts": [
+                {
+                    "type": "text",
+                    "text": "Hello, world!"
+                }
+            ]
+        }
+    }
+}
 
 ### Send an task to the echo agent
 POST {{host}}/hostedclient

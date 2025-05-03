@@ -1,11 +1,3 @@
-using System.IO.Pipelines;
-using System.Net;
-using System.Net.ServerSentEvents;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Text.Json;
-using System.Text.Json.Nodes;
-using System.Threading.Tasks;
 
 namespace A2ALib;
 
@@ -16,15 +8,17 @@ public class TaskManager
     /// <summary>
     /// Agent handler for task creation.
     /// </summary>
-    public Action<AgentTask> OnTaskCreated { get; set; } = (task) => { };
+    public Func<AgentTask,Task> OnTaskCreated { get; set; } = (task) => { return Task.CompletedTask; };
     /// <summary>
     /// Agent handler for task cancellation.
     /// </summary>
-    public Action<AgentTask> OnTaskCancelled { get; set; } = (task) => { };
+    public Func<AgentTask,Task> OnTaskCancelled { get; set; } = (task) => { return Task.CompletedTask; };
     /// <summary>
     /// Agent handler for task update.
     /// </summary>
-    public Action<AgentTask> OnTaskUpdated { get; set; } = (task) => { };
+    public Func<AgentTask,Task> OnTaskUpdated { get; set; } = (task) => { return Task.CompletedTask; };
+
+    private Dictionary<string, TaskUpdateEventEnumerator> _TaskUpdateEventEnumerators = new Dictionary<string, TaskUpdateEventEnumerator>();
 
     public TaskManager( HttpClient? callbackHttpClient = null, ITaskStore? taskStore = null)
     {
@@ -78,19 +72,60 @@ public class TaskManager
                 },
                 Metadata = taskSendParams.Metadata
             };
-            _TaskStore.SetTaskAsync(task);
-            OnTaskCreated(task);
+            await _TaskStore.SetTaskAsync(task);
+            await OnTaskCreated(task);
         } else {
+            if (task.History == null)
+            {
+                task.History = new List<Message>();
+            }
             task.History.Add(taskSendParams.Message);
-            _TaskStore.SetTaskAsync(task);
-            OnTaskUpdated(task);
+            await _TaskStore.SetTaskAsync(task);
+            await OnTaskUpdated(task);
         }
         return task;
     }
 
-    public Task<IAsyncEnumerable<TaskUpdateEvent>> SendSubscribeAsync(TaskSendParams taskSendParams)
+    public async Task<IAsyncEnumerable<TaskUpdateEvent>> SendSubscribeAsync(TaskSendParams taskSendParams)
     {
-        throw new NotImplementedException();
+
+        if (taskSendParams == null)
+        {
+            throw new ArgumentNullException(nameof(taskSendParams), "TaskSendParams cannot be null.");
+        }
+
+        Task processingTask;
+        var agentTask = _TaskStore.GetTaskAsync(taskSendParams.Id).Result;
+        if(agentTask == null)
+        {
+            agentTask = new AgentTask
+            {
+                Id = taskSendParams.Id,
+                SessionId = taskSendParams.SessionId,
+                History = [taskSendParams.Message],
+                Status = new AgentTaskStatus()
+                {
+                    State = TaskState.Submitted,
+                    Timestamp = DateTime.UtcNow
+                },
+                Metadata = taskSendParams.Metadata
+            };
+            await _TaskStore.SetTaskAsync(agentTask);
+            processingTask = Task.Run(async () => await OnTaskCreated(agentTask));
+
+        } else {
+            if (agentTask.History == null)
+            {
+                agentTask.History = new List<Message>();
+            }
+            agentTask.History.Add(taskSendParams.Message);
+            await _TaskStore.SetTaskAsync(agentTask);
+            processingTask = Task.Run(async () => await OnTaskUpdated(agentTask));
+        }
+
+        var enumerator = new TaskUpdateEventEnumerator(processingTask);
+        _TaskUpdateEventEnumerators[taskSendParams.Id] = enumerator;
+        return enumerator;
     }
 
     public async Task<TaskPushNotificationConfig?> SetPushNotificationAsync(TaskPushNotificationConfig? pushNotificationConfig)
@@ -122,11 +157,28 @@ public class TaskManager
     /// <param name="status"></param>
     /// <param name="message"></param>
     /// <returns></returns>
-    public async Task UpdateStatus(string taskId, TaskState status, Message? message = null)
+    public async Task UpdateStatusAsync(string taskId, TaskState status, Message? message = null, bool final = false)
     {
-        await _TaskStore.UpdateStatusAsync(taskId, status, message);
+        var agentStatus = await _TaskStore.UpdateStatusAsync(taskId, status, message);
         //TODO: Make callback notification if set by the client
-        //TODO: If open stream for the task return a TaskStatusUpdateEvent
+        _TaskUpdateEventEnumerators.TryGetValue(taskId, out var enumerator);
+        if(enumerator != null)
+        {
+            var taskUpdateEvent = new TaskStatusUpdateEvent
+            {
+                Id = taskId,
+                Status = agentStatus,
+                Final = final
+            };
+            if (final)
+            {
+                enumerator.NotifyFinalEvent(taskUpdateEvent);
+            }
+            else
+            {
+                enumerator.NotifyEvent(taskUpdateEvent);
+            }
+        }
     }
 
     /// <summary>
@@ -137,7 +189,7 @@ public class TaskManager
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="ArgumentException"></exception>
-    public async Task ReturnArtifact(TaskIdParams taskIdParams, Artifact artifact)
+    public async Task ReturnArtifactAsync(TaskIdParams taskIdParams, Artifact artifact)
     {
         if (artifact == null)
         {
@@ -154,7 +206,16 @@ public class TaskManager
             task.Artifacts.Add(artifact);
             await _TaskStore.SetTaskAsync(task);
             //TODO: Make callback notification if set by the client
-            //TODO: If open stream for the task return a TaskStatusUpdateEvent
+            _TaskUpdateEventEnumerators.TryGetValue(task.Id, out var enumerator);
+            if(enumerator != null)
+            {
+                var taskUpdateEvent = new TaskArtifactUpdateEvent
+                {
+                    Id = task.Id,
+                    Artifact = artifact
+                };
+                enumerator.NotifyEvent(taskUpdateEvent);
+            }
         }
         else
         {
@@ -163,4 +224,3 @@ public class TaskManager
     }
     // TODO: Implement UpdateArtifact method
 }
-

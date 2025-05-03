@@ -7,18 +7,16 @@ public class EchoAgent
     public void Attach(TaskManager taskManager)
     {
         _TaskManager = taskManager;
-        taskManager.OnTaskCreated = async (task) => {
-            await ExecuteAgentTask(task);
-        };
-        taskManager.OnTaskUpdated = async (task) => {
-            await ExecuteAgentTask(task);
-        };
+        taskManager.OnTaskCreated = ExecuteAgentTask;
+        taskManager.OnTaskUpdated = ExecuteAgentTask;
     }
 
     public async Task ExecuteAgentTask(AgentTask task) {
         if  (_TaskManager == null) {
             throw new Exception("TaskManager is not attached.");
         }
+        // Set Status to working
+        await _TaskManager.UpdateStatusAsync(task.Id, TaskState.Working);
 
         var message = task.History!.Last().Parts.First().AsTextPart().Text;
         var artifact = new Artifact() {
@@ -26,6 +24,7 @@ public class EchoAgent
                 Text = $"Echo: {message}"
             }]
         };
-        await _TaskManager.ReturnArtifact(new TaskIdParams() {Id = task.Id}, artifact);
+        await _TaskManager.ReturnArtifactAsync(new TaskIdParams() {Id = task.Id}, artifact);
+        await _TaskManager.UpdateStatusAsync(task.Id, TaskState.Completed, final: true);
     }
 }

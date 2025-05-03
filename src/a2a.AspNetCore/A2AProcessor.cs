@@ -1,3 +1,5 @@
+using System.IO.Pipelines;
+using System.Text;
 using System.Text.Json;
 using A2ALib;
 using DomFactory;
@@ -68,34 +70,45 @@ public static class A2AProcessor
         return response;
     }
 
-    internal static async Task StreamResponse(TaskManager taskManager, HttpContext context, JsonRpcRequest message)
+    internal static async Task StreamResponse(TaskManager taskManager, HttpContext context, string requestId, IJsonRpcParams parameters)
     {
-        if (message.Params == null)
+        if (parameters == null)
         {
             context.Response.StatusCode = StatusCodes.Status400BadRequest;
-            await context.Response.WriteAsJsonAsync(new JsonRpcResponse()
+            var response = new JsonRpcResponse()
             {
-                Id = message.Id,
+                Id = requestId,
                 Error = new JsonRpcError()
                 {
                     Code = -32602,
                     Message = "Invalid params"
                 },
                 JsonRpc = "2.0"
-            });
+            };
+            A2ARouteBuilderExtensions.WriteJsonRpcResponse(context, response);
             return;
         }
 
-        var taskEvents = await taskManager.SendSubscribeAsync((TaskSendParams)message.Params);
+        var taskEvents = await taskManager.SendSubscribeAsync((TaskSendParams)parameters);
         context.Response.ContentType = "text/event-stream";
         context.Response.StatusCode = StatusCodes.Status200OK;
 
         await foreach (var taskEvent in taskEvents)
         {
-            await context.Response.WriteAsJsonAsync(taskEvent);
-            await context.Response.Body.FlushAsync(context.RequestAborted);
+            var sseItem = new A2ASseItem()
+            {
+                Data = new JsonRpcResponse()
+                {
+                    Id = requestId,
+                    Result = taskEvent,
+                    JsonRpc = "2.0"
+                }
+            };
+            await sseItem.WriteAsync(context.Response.BodyWriter);
+            await context.Response.BodyWriter.FlushAsync();
+
         }
-        await context.Response.CompleteAsync();
+
     }
 
     internal static async Task<JsonRpcRequest> ParseJsonRpcRequestAsync(ValidationContext validationContext,Stream stream, CancellationToken requestAborted)
@@ -117,3 +130,26 @@ public static class A2AProcessor
     }
 
 }
+
+public class A2ASseItem
+{
+    public JsonRpcResponse? Data { get; set; }
+
+    public async Task WriteAsync(PipeWriter writer)
+    {
+
+        if (Data != null)
+        {
+            var jsonStream = new MemoryStream();
+            var jsonWriter = new Utf8JsonWriter(jsonStream, new JsonWriterOptions { Indented = false });
+            Data.Write(jsonWriter);
+            jsonWriter.Flush();
+            jsonStream.Position = 0;
+            using var reader = new StreamReader(jsonStream);
+            var json = reader.ReadToEnd();
+            await writer.WriteAsync(Encoding.UTF8.GetBytes($"data: {json}\n\n"));
+            await writer.FlushAsync();
+        }
+    }
+}
+

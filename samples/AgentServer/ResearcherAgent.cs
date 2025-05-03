@@ -38,7 +38,7 @@ public class ResearcherAgent
         {
             case AgentState.Planning:
                 await DoPlanning(taskId, message);
-                await _taskManager.UpdateStatus(taskId, TaskState.InputRequired, new Message()
+                await _taskManager.UpdateStatusAsync(taskId, TaskState.InputRequired, new Message()
                     {
                         Parts = [new TextPart() { Text = "When ready say go ahead" }],
                     });
@@ -52,7 +52,7 @@ public class ResearcherAgent
                 {
                     // Take the message and redo planning
                     await DoPlanning(taskId, message);
-                    await _taskManager.UpdateStatus(taskId, TaskState.InputRequired, new Message()
+                    await _taskManager.UpdateStatusAsync(taskId, TaskState.InputRequired, new Message()
                     {
                         Parts = [new TextPart() { Text = "When ready say go ahead" }],
                     });
@@ -67,16 +67,16 @@ public class ResearcherAgent
     private async Task DoResearch(string taskId, string message)
     {
         _agentStates[taskId] = AgentState.Researching;
-        await _taskManager.UpdateStatus(taskId, TaskState.Working);
+        await _taskManager.UpdateStatusAsync(taskId, TaskState.Working);
 
-        await _taskManager.ReturnArtifact(
+        await _taskManager.ReturnArtifactAsync(
             new TaskIdParams() { Id = taskId },
             new Artifact()
             {
                 Parts = [new TextPart() { Text = $"{message} received." }],
             });
 
-        await _taskManager.UpdateStatus(taskId, TaskState.Completed, new Message()
+        await _taskManager.UpdateStatusAsync(taskId, TaskState.Completed, new Message()
         {
             Parts = [new TextPart() { Text = "Task completed successfully" }],
         });
@@ -88,16 +88,16 @@ public class ResearcherAgent
         // Simulate being in a queue for a while
         await Task.Delay(1000);
         // Simulate processing the task
-        await _taskManager.UpdateStatus(taskId, TaskState.Working);
+        await _taskManager.UpdateStatusAsync(taskId, TaskState.Working);
 
-        await _taskManager.ReturnArtifact(
+        await _taskManager.ReturnArtifactAsync(
             new TaskIdParams() { Id = taskId },
             new Artifact()
             {
                 Parts = [new TextPart() { Text = $"{message} received." }],
             });
 
-        await _taskManager.UpdateStatus(taskId, TaskState.InputRequired, new Message()
+        await _taskManager.UpdateStatusAsync(taskId, TaskState.InputRequired, new Message()
         {
             Parts = [new TextPart() { Text = "When ready say go ahead" }],
         });

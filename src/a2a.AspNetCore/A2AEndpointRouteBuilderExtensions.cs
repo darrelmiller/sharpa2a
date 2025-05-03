@@ -43,7 +43,8 @@ public static class A2ARouteBuilderExtensions
             // Dispatch based on return type
             if (A2AMethods.IsStreamingMethod(rpcRequest.Method))
             {
-                await A2AProcessor.StreamResponse(taskManager, context, rpcRequest);
+                await A2AProcessor.StreamResponse(taskManager, context, rpcRequest.Id, parsedParameters);
+                await context.Response.CompleteAsync();
             }
             else
             {
@@ -55,17 +56,13 @@ public static class A2ARouteBuilderExtensions
                     if (jsonRpcResponse.Error != null)
                     {
                         context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                        var writer = new Utf8JsonWriter(context.Response.BodyWriter);
-                        jsonRpcResponse.Write(writer);
-                        writer.Flush();
+                        WriteJsonRpcResponse(context, jsonRpcResponse);
                         await context.Response.CompleteAsync();
                     }
                     else
                     {
                         context.Response.StatusCode = StatusCodes.Status200OK;
-                        var writer = new Utf8JsonWriter(context.Response.BodyWriter);
-                        jsonRpcResponse.Write(writer);
-                        writer.Flush();
+                        WriteJsonRpcResponse(context, jsonRpcResponse);
                         await context.Response.CompleteAsync();
                     }
                 }
@@ -82,9 +79,7 @@ public static class A2ARouteBuilderExtensions
                         },
                         JsonRpc = "2.0"
                     };
-                    var writer = new Utf8JsonWriter(context.Response.BodyWriter);
-                    jsonRpcResponse.Write(writer);
-                    writer.Flush();
+                    WriteJsonRpcResponse(context, jsonRpcResponse);
                     await context.Response.CompleteAsync();
 
                 }
@@ -92,5 +87,12 @@ public static class A2ARouteBuilderExtensions
         });
 
         return routeGroup;
+    }
+
+    internal static void WriteJsonRpcResponse(HttpContext context, JsonRpcResponse jsonRpcResponse)
+    {
+        var writer = new Utf8JsonWriter(context.Response.BodyWriter);
+        jsonRpcResponse.Write(writer);
+        writer.Flush();
     }
 }
