@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using DomFactory;
 using Microsoft.AspNetCore.Http;
 using System.Text.Json;
+using System.Diagnostics;
 
 
 namespace A2ATransport;
@@ -13,15 +14,18 @@ namespace A2ATransport;
 
 public static class A2ARouteBuilderExtensions
 {
+    public static readonly ActivitySource ActivitySource = new ActivitySource("A2A.Endpoint", "1.0.0");
+    
     public static IEndpointConventionBuilder MapA2A(this IEndpointRouteBuilder endpoints, TaskManager taskManager, string path)
     {
-
         var loggerFactory = endpoints.ServiceProvider.GetRequiredService<ILoggerFactory>();
-
-        var routeGroup = endpoints.MapGroup("");
-
-        routeGroup.MapPost(path, requestDelegate: async context =>
+        var logger = loggerFactory.CreateLogger<IEndpointRouteBuilder>();
+        
+        var routeGroup = endpoints.MapGroup("");        routeGroup.MapPost(path, requestDelegate: async context =>
         {
+            using var activity = ActivitySource.StartActivity("HandleA2ARequest", ActivityKind.Server);
+            activity?.AddTag("endpoint.path", path);
+            
             var validationContext = new ValidationContext("1.0");
             // Parse generic JSON-RPC request
             var rpcRequest = await A2AProcessor.ParseJsonRpcRequestAsync(validationContext,context.Request.Body, context.RequestAborted);
@@ -38,18 +42,33 @@ public static class A2ARouteBuilderExtensions
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;
                 await context.Response.WriteAsJsonAsync(validationContext.Problems);
                 return;
-            }
-
-            // Dispatch based on return type
+            }            // Dispatch based on return type
             if (A2AMethods.IsStreamingMethod(rpcRequest.Method))
             {
+                if (parsedParameters == null)
+                {
+                    context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                    var errorResponse = new JsonRpcResponse()
+                    {
+                        Id = rpcRequest.Id,
+                        Error = new JsonRpcError()
+                        {
+                            Code = -32602,
+                            Message = "Invalid params"
+                        },
+                        JsonRpc = "2.0"
+                    };
+                    WriteJsonRpcResponse(context, errorResponse);
+                    return;
+                }
                 await A2AProcessor.StreamResponse(taskManager, context, rpcRequest.Id, parsedParameters);
                 await context.Response.CompleteAsync();
             }
             else
-            {
-                try {
- 
+            {                try {
+                    activity?.AddTag("request.id", rpcRequest.Id);
+                    activity?.AddTag("request.method", rpcRequest.Method);
+                    
                     var jsonRpcResponse = await A2AProcessor.SingleResponse(taskManager, context, rpcRequest.Id, rpcRequest.Method, parsedParameters);
 
                     context.Response.ContentType = "application/json";

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using A2ALib;
 
 
@@ -5,6 +6,7 @@ public class HostedClientAgent
 {
     private TaskManager? _TaskManager;
     private A2AClient echoClient;
+    public static readonly ActivitySource ActivitySource = new ActivitySource("A2A.HostedClientAgent", "1.0.0");
 
     public HostedClientAgent() {
         echoClient = new A2AClient(new HttpClient() { BaseAddress = new Uri("http://localhost:5048/echo")});
@@ -18,10 +20,14 @@ public class HostedClientAgent
         taskManager.OnTaskUpdated = async (task) => {
             await ExecuteAgentTask(task);
         };
-    }
-
+    }    
     public async Task ExecuteAgentTask(AgentTask task) {
+        using var activity = ActivitySource.StartActivity("ExecuteAgentTask", ActivityKind.Server);
+        activity?.SetTag("task.id", task.Id);
+        activity?.SetTag("task.sessionId", task.SessionId);
+        
         if  (_TaskManager == null) {
+            activity?.SetStatus(ActivityStatusCode.Error, "TaskManager is not attached.");
             throw new Exception("TaskManager is not attached.");
         }
 

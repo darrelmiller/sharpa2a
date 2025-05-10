@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Text;
 using System.Text.Json;
@@ -9,9 +10,12 @@ namespace A2ATransport;
 
 public static class A2AProcessor
 {
-
-    internal static async Task<JsonRpcResponse> SingleResponse(TaskManager taskManager, HttpContext context, string requestId, string method, IJsonRpcParams? parameters)
+    public static readonly ActivitySource ActivitySource = new ActivitySource("A2A.Processor", "1.0.0"); internal static async Task<JsonRpcResponse> SingleResponse(TaskManager taskManager, HttpContext context, string requestId, string method, IJsonRpcParams? parameters)
     {
+        using var activity = ActivitySource.StartActivity($"SingleResponse/{method}", ActivityKind.Server);
+        activity?.SetTag("request.id", requestId);
+        activity?.SetTag("request.method", method);
+
         JsonRpcResponse? response = null;
 
         if (parameters == null)
@@ -69,9 +73,11 @@ public static class A2AProcessor
 
         return response;
     }
-
     internal static async Task StreamResponse(TaskManager taskManager, HttpContext context, string requestId, IJsonRpcParams parameters)
     {
+        using var activity = ActivitySource.StartActivity("StreamResponse", ActivityKind.Server);
+        activity?.SetTag("request.id", requestId);
+
         if (parameters == null)
         {
             context.Response.StatusCode = StatusCodes.Status400BadRequest;
@@ -85,37 +91,82 @@ public static class A2AProcessor
                 },
                 JsonRpc = "2.0"
             };
+            activity?.SetStatus(ActivityStatusCode.Error, "Invalid parameters");
             A2ARouteBuilderExtensions.WriteJsonRpcResponse(context, response);
             return;
         }
 
-        var taskEvents = await taskManager.SendSubscribeAsync((TaskSendParams)parameters);
-        context.Response.ContentType = "text/event-stream";
-        context.Response.StatusCode = StatusCodes.Status200OK;
-
-        await foreach (var taskEvent in taskEvents)
+        try
         {
-            var sseItem = new A2ASseItem()
+            var taskSendParams = (TaskSendParams)parameters;
+            activity?.SetTag("task.id", taskSendParams.Id);
+            activity?.SetTag("task.sessionId", taskSendParams.SessionId);
+            
+            var taskEvents = await taskManager.SendSubscribeAsync(taskSendParams);
+            context.Response.ContentType = "text/event-stream";
+            context.Response.StatusCode = StatusCodes.Status200OK;
+
+            int eventCount = 0;
+            await foreach (var taskEvent in taskEvents)
             {
-                Data = new JsonRpcResponse()
+                var sseItem = new A2ASseItem()
+                {
+                    Data = new JsonRpcResponse()
+                    {
+                        Id = requestId,
+                        Result = taskEvent,
+                        JsonRpc = "2.0"
+                    }
+                };
+                  // Capture information about each event
+                activity?.AddEvent(new ActivityEvent($"Stream event {eventCount++}"));
+                    
+                await sseItem.WriteAsync(context.Response.BodyWriter);
+                await context.Response.BodyWriter.FlushAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            if (!context.Response.HasStarted)
+            {
+                context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+                var response = new JsonRpcResponse()
                 {
                     Id = requestId,
-                    Result = taskEvent,
+                    Error = new JsonRpcError()
+                    {
+                        Code = -32000,
+                        Message = "Server error"
+                    },
                     JsonRpc = "2.0"
-                }
-            };
-            await sseItem.WriteAsync(context.Response.BodyWriter);
-            await context.Response.BodyWriter.FlushAsync();
-
+                };
+                A2ARouteBuilderExtensions.WriteJsonRpcResponse(context, response);
+            }
         }
-
     }
-
-    internal static async Task<JsonRpcRequest> ParseJsonRpcRequestAsync(ValidationContext validationContext,Stream stream, CancellationToken requestAborted)
+    internal static async Task<JsonRpcRequest> ParseJsonRpcRequestAsync(ValidationContext validationContext, Stream stream, CancellationToken requestAborted)
     {
-        var doc = await JsonDocument.ParseAsync(stream, cancellationToken: requestAborted);
-        var message = JsonRpcRequest.Load(doc.RootElement, validationContext);
-        return message;
+        using var activity = ActivitySource.StartActivity("ParseJsonRpcRequest", ActivityKind.Internal);
+
+        try
+        {
+            var doc = await JsonDocument.ParseAsync(stream, cancellationToken: requestAborted);
+            var message = JsonRpcRequest.Load(doc.RootElement, validationContext);
+
+            if (message != null)
+            {
+                activity?.SetTag("request.id", message.Id);
+                activity?.SetTag("request.method", message.Method);
+            }
+
+            return message ?? throw new InvalidOperationException("Failed to parse JSON-RPC request");
+        }
+        catch (Exception ex)
+        {
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            throw;
+        }
     }
 
 

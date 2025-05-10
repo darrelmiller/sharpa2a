@@ -1,11 +1,36 @@
 using A2ALib;
 using A2ATransport;
+using System.Diagnostics;
+using OpenTelemetry;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
+// Configure OpenTelemetry
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => {
+        resource.AddService("A2AAgentServer");
+    })
+    .WithTracing(tracing => tracing
+        .AddSource(A2ALib.TaskManager.ActivitySource.Name)
+        .AddSource(A2AProcessor.ActivitySource.Name)
+        .AddSource(HostedClientAgent.ActivitySource.Name)
+        .AddSource(ResearcherAgent.ActivitySource.Name)
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation()
+        .AddConsoleExporter()
+        .AddOtlpExporter(options =>
+        {
+            options.Endpoint = new Uri("http://localhost:4317");
+            options.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.Grpc;
+        })
+        );
+        
 
 var app = builder.Build();
 
