@@ -3,7 +3,7 @@ using A2ALib;
 
 public class EchoAgent
 {
-    private TaskManager? _TaskManager;
+    private ITaskManager _TaskManager = new NoopTaskManager();
 
     public void Attach(TaskManager taskManager)
     {

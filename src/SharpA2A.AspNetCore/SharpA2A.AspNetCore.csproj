@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\a2alib\a2alib.csproj" />
+    <ProjectReference Include="..\SharpA2A.Core\SharpA2A.Core.csproj" />
   </ItemGroup>
 
 

@@ -3,9 +3,9 @@ using System.Diagnostics;
 
 namespace A2ALib;
 
-public class ResearcherAgent 
+public class ResearcherAgent
 {
-    private TaskManager _taskManager;
+    private ITaskManager? _taskManager;
     private Dictionary<string, AgentState> _agentStates = new Dictionary<string, AgentState>();
     public static readonly ActivitySource ActivitySource = new ActivitySource("A2A.ResearcherAgent", "1.0.0");
 
@@ -18,17 +18,20 @@ public class ResearcherAgent
 
     public void Attach(TaskManager taskManager)
     {
+        if (_taskManager == null) {
+            throw new Exception("TaskManager is not attached.");
+        }
         _taskManager = taskManager;
         _taskManager.OnTaskCreated = async (task) => {
             // Iinitialize the agent state for the task
             _agentStates[task.Id] = AgentState.Planning;
             // Ignore other content in the task, just assume it is a text message.
-            var message = ((TextPart)task.History?.Last().Parts[0]).Text;
+            var message = ((TextPart?)task.History?.Last()?.Parts?.FirstOrDefault())?.Text ?? string.Empty;
             await Invoke(task.Id, message);
          };
          _taskManager.OnTaskUpdated = async (task) => {
             // Note that the updated callback is helpful to know not to initialize the agent state again.
-            var message = ((TextPart)task.History?.Last().Parts[0]).Text;
+            var message = ((TextPart?)task.History?.Last()?.Parts?.FirstOrDefault())?.Text ?? string.Empty;
             await Invoke(task.Id, message);
          };
     }
@@ -36,6 +39,10 @@ public class ResearcherAgent
     // This is the main entry point for the agent. It is called when a task is created or updated.
     // It probably should have a cancellation token to enable the process to be cancelled.
     public async Task Invoke(string taskId, string message) {
+
+        if (_taskManager == null) {
+            throw new Exception("TaskManager is not attached.");
+        }
 
         using var activity = ActivitySource.StartActivity("Invoke", ActivityKind.Server);
         activity?.SetTag("task.id", taskId);
@@ -70,8 +77,13 @@ public class ResearcherAgent
                 await DoResearch(taskId, message);
                 break;
         }
-    }    private async Task DoResearch(string taskId, string message)
+    }    
+private async Task DoResearch(string taskId, string message)
     {
+        if (_taskManager == null) {
+            throw new Exception("TaskManager is not attached.");
+        }
+
         using var activity = ActivitySource.StartActivity("DoResearch", ActivityKind.Server);
         activity?.SetTag("task.id", taskId);
         activity?.SetTag("message", message);
@@ -92,10 +104,14 @@ public class ResearcherAgent
         });
     }    private async Task DoPlanning(string taskId, string message)
     {
+        if (_taskManager == null) {
+            throw new Exception("TaskManager is not attached.");
+        }
+
         using var activity = ActivitySource.StartActivity("DoPlanning", ActivityKind.Server);
         activity?.SetTag("task.id", taskId);
         activity?.SetTag("message", message);
-        
+
         // Task should be in status Submitted
         // Simulate being in a queue for a while
         await Task.Delay(1000);

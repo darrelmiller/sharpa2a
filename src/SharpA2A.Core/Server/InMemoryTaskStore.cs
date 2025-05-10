@@ -52,7 +52,7 @@ public class InMemoryTaskStore : ITaskStore
         return Task.CompletedTask;
     }
 
-    public async Task SetPushNotificationConfigAsync(TaskPushNotificationConfig pushNotificationConfig)
+    public Task SetPushNotificationConfigAsync(TaskPushNotificationConfig pushNotificationConfig)
     {
         if (_PushNotificationCache.ContainsKey(pushNotificationConfig.Id))
         {
@@ -62,6 +62,7 @@ public class InMemoryTaskStore : ITaskStore
         {
             _PushNotificationCache.Add(pushNotificationConfig.Id, pushNotificationConfig);
         }
+        return Task.CompletedTask;
     }
 }
 

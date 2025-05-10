@@ -4,7 +4,7 @@ using OpenTelemetry.Context.Propagation;
 
 namespace A2ALib;
 
-public class TaskManager
+public class TaskManager : ITaskManager
 {
     // OpenTelemetry ActivitySource
     public static readonly ActivitySource ActivitySource = new ActivitySource("A2A.TaskManager", "1.0.0");
