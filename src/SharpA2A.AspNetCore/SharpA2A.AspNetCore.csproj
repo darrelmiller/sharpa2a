@@ -4,19 +4,32 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    
+    <!-- NuGet Package Properties -->
+    <PackageId>SharpA2A.AspNetCore</PackageId>
+    <Description>ASP.NET Core integration for the SharpA2A library to implement A2A protocol endpoints</Description>
+    <PackageTags>a2a;agent;ai;aspnetcore</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <IsPackable>true</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SharpA2A.Core\SharpA2A.Core.csproj" />
+    <ProjectReference Include="..\SharpA2A.Core\SharpA2A.Core.csproj" />    
   </ItemGroup>
 
-
-  <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
-  </ItemGroup><ItemGroup>
-  <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.12.0" />
-  <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.12.0" />
-  <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.12.0" />
-</ItemGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.12.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.12.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.12.0" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
 </Project>

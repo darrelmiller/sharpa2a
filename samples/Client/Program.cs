@@ -22,7 +22,6 @@ class Program
     private static HttpClient? httpClient;
     private static A2AClient? client;
     private static string currentSessionId = Guid.NewGuid().ToString("N");
-    private static TracerProvider? tracerProvider;
     // The version could also come from assembly info or a version file
     private static readonly string ServiceVersion = "1.0.0";
     private static readonly string ServiceName = "SharpA2A.Client";
