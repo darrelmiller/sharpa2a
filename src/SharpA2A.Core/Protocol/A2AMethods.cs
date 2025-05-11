@@ -1,7 +1,7 @@
 using System.Text.Json;
 using DomFactory;
 
-namespace A2ALib;
+namespace SharpA2A.Core;
 
 public static class A2AMethods
 {

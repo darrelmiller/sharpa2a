@@ -1,5 +1,5 @@
-using A2ALib;
-using A2ATransport;
+using SharpA2A.Core;
+using SharpA2A.AspNetCore;
 using System.Diagnostics;
 using OpenTelemetry;
 using OpenTelemetry.Resources;
@@ -17,7 +17,7 @@ builder.Services.AddOpenTelemetry()
         resource.AddService("A2AAgentServer");
     })
     .WithTracing(tracing => tracing
-        .AddSource(A2ALib.TaskManager.ActivitySource.Name)
+        .AddSource(SharpA2A.Core.TaskManager.ActivitySource.Name)
         .AddSource(A2AProcessor.ActivitySource.Name)
         .AddSource(HostedClientAgent.ActivitySource.Name)
         .AddSource(ResearcherAgent.ActivitySource.Name)

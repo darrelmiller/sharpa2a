@@ -1,6 +1,6 @@
 using System.Net;
-using A2ALib;
-using A2ATransport;
+using SharpA2A.Core;
+using SharpA2A.AspNetCore;
 using Json.Schema;
 using System.Text.Json;
 
@@ -13,7 +13,7 @@ public class ClientTests : IClassFixture<JsonSchemaFixture> {
     public ClientTests(JsonSchemaFixture fixture) {
         a2aSchema = fixture.Schema;
     }
-    
+
     [Fact]
     public async Task TestGetTask() {
         // Arrange
@@ -25,7 +25,9 @@ public class ClientTests : IClassFixture<JsonSchemaFixture> {
 
         // Act
         var result = await client.GetTask(taskId);
-        var message = await mockHandler.Request.Content.ReadAsStringAsync();
+        var message = mockHandler.Request?.Content != null
+            ? await mockHandler.Request.Content.ReadAsStringAsync()
+            : string.Empty;
         // Assert
         Assert.NotNull(message);
 
@@ -59,8 +61,8 @@ public class ClientTests : IClassFixture<JsonSchemaFixture> {
 
         // Act
         var result = await client.Send(taskSendParams);
-        var message = await mockHandler.Request.Content.ReadAsStringAsync();
-        
+        var message = await mockHandler!.Request!.Content!.ReadAsStringAsync();
+
         // Assert
         Assert.NotNull(message);
 
@@ -81,8 +83,8 @@ public class ClientTests : IClassFixture<JsonSchemaFixture> {
 
         // Act
         var result = await client.CancelTask(new TaskIdParams { Id = taskId });
-        var message = await mockHandler.Request.Content.ReadAsStringAsync();
-        
+        var message = await mockHandler!.Request!.Content!.ReadAsStringAsync();
+
         // Assert
         Assert.NotNull(message);
 
@@ -115,8 +117,8 @@ public class ClientTests : IClassFixture<JsonSchemaFixture> {
 
         // Act
         var result = await client.SetPushNotification(pushNotificationConfig);
-        var message = await mockHandler.Request.Content.ReadAsStringAsync();
-        
+        var message = await mockHandler!.Request!.Content!.ReadAsStringAsync();
+
         // Assert
         Assert.NotNull(message);
 
@@ -150,10 +152,9 @@ public class MockMessageHandler : HttpMessageHandler
            Content = new JsonRpcContent(new JsonRpcResponse()
            {
                Id = "dummy-id",
-               Result = null,
+               Result = new JsonRpcResult(JsonDocument.Parse("{}").RootElement)
            })
         };
         return Task.FromResult(response);
     }
-    
 }

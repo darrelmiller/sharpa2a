@@ -2,7 +2,7 @@ using System.Diagnostics;
 using OpenTelemetry;
 using OpenTelemetry.Context.Propagation;
 
-namespace A2ALib;
+namespace SharpA2A.Core;
 
 public class TaskManager : ITaskManager
 {

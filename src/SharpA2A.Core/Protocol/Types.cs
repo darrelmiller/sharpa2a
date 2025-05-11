@@ -6,7 +6,7 @@ using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using DomFactory;
 
-namespace A2ALib;
+namespace SharpA2A.Core;
 
 public enum TaskState {
     [JsonPropertyName("submitted")]

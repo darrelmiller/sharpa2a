@@ -1,6 +1,6 @@
 using System.Net.ServerSentEvents;
 
-namespace A2ALib;
+namespace SharpA2A.Core;
 
 public interface IA2AClient
 {
@@ -8,6 +8,6 @@ public interface IA2AClient
     Task<AgentTask> GetTask(string taskId);
     Task<AgentTask> CancelTask(TaskIdParams taskIdParams);
     Task<IAsyncEnumerable<SseItem<TaskUpdateEvent>>> SendSubscribe(TaskSendParams taskSendParams);
-    Task<TaskPushNotificationConfig?> SetPushNotification(TaskPushNotificationConfig? pushNotificationConfig);
-    Task<TaskPushNotificationConfig?> GetPushNotification(TaskIdParams? taskIdParams);
+    Task<TaskPushNotificationConfig> SetPushNotification(TaskPushNotificationConfig pushNotificationConfig);
+    Task<TaskPushNotificationConfig> GetPushNotification(TaskIdParams taskIdParams);
 }

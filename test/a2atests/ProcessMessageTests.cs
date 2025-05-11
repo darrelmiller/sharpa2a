@@ -2,7 +2,7 @@
 // using System.Threading;
 // using System.Threading.Tasks;
 // using Xunit;
-// using A2ALib;
+// using SharpA2A.Core;
 
 // // These become A2AProcessor tests
 // public class ProcessMessageTests

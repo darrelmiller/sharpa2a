@@ -3,7 +3,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 
-namespace A2ATransport;
+namespace SharpA2A.AspNetCore;
 
 public class JsonRpcContent : HttpContent
 {
@@ -20,6 +20,7 @@ public class JsonRpcContent : HttpContent
     }
     public JsonRpcContent(JsonRpcResponse response)
     {
+        Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
         // Serialize the response to JSON and convert it to a byte array
         stream = new MemoryStream();
         var writer = new Utf8JsonWriter(stream);

@@ -1,4 +1,4 @@
-using A2ALib;
+using SharpA2A.Core;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
@@ -8,24 +8,22 @@ using Microsoft.AspNetCore.Http;
 using System.Text.Json;
 using System.Diagnostics;
 
-
-namespace A2ATransport;
-
+namespace SharpA2A.AspNetCore;
 
 public static class A2ARouteBuilderExtensions
 {
     public static readonly ActivitySource ActivitySource = new ActivitySource("A2A.Endpoint", "1.0.0");
-    
+
     public static IEndpointConventionBuilder MapA2A(this IEndpointRouteBuilder endpoints, TaskManager taskManager, string path)
     {
         var loggerFactory = endpoints.ServiceProvider.GetRequiredService<ILoggerFactory>();
         var logger = loggerFactory.CreateLogger<IEndpointRouteBuilder>();
-        
+
         var routeGroup = endpoints.MapGroup("");        routeGroup.MapPost(path, requestDelegate: async context =>
         {
             using var activity = ActivitySource.StartActivity("HandleA2ARequest", ActivityKind.Server);
             activity?.AddTag("endpoint.path", path);
-            
+
             var validationContext = new ValidationContext("1.0");
             // Parse generic JSON-RPC request
             var rpcRequest = await A2AProcessor.ParseJsonRpcRequestAsync(validationContext,context.Request.Body, context.RequestAborted);
@@ -42,7 +40,8 @@ public static class A2ARouteBuilderExtensions
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;
                 await context.Response.WriteAsJsonAsync(validationContext.Problems);
                 return;
-            }            // Dispatch based on return type
+            }
+            // Dispatch based on return type
             if (A2AMethods.IsStreamingMethod(rpcRequest.Method))
             {
                 if (parsedParameters == null)

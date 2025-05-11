@@ -31,7 +31,7 @@ echoAgent.Attach(echoTaskManager);
 app.MapA2A(echoTaskManager,"/echo");
 ```
 
-## Library: a2alib
+## Library: SharpA2A.Core
 This library contains the core A2A protocol implementation. It includes the following classes:
 - `A2AClient`: Used for making A2A requests to an agent.
 - `TaskManager`: Provides standardized support for managing tasks and task execution.
@@ -45,7 +45,7 @@ This library contains helper classes for support deserialization and serializati
 Each agent instance should be given its own `TaskManager` instance. The `TaskManager` is responsible for managing the tasks and their execution. It is an implementation decision as to whether a single agent instance processes many tasks or whether an agent instance is created for each task.
 
 ```c#
-using A2ALib;
+using SharpA2A.Core;
 
 public class EchoAgent
 {

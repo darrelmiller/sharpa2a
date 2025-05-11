@@ -2,11 +2,11 @@ using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Text;
 using System.Text.Json;
-using A2ALib;
+using SharpA2A.Core;
 using DomFactory;
 using Microsoft.AspNetCore.Http;
 
-namespace A2ATransport;
+namespace SharpA2A.AspNetCore;
 
 public static class A2AProcessor
 {

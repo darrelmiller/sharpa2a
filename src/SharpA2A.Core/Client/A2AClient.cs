@@ -2,10 +2,10 @@
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-using A2ATransport;
+using SharpA2A.AspNetCore;
 using DomFactory;
 
-namespace A2ALib;
+namespace SharpA2A.Core;
 
 public class A2AClient : IA2AClient
 {
@@ -27,14 +27,14 @@ public class A2AClient : IA2AClient
         return await RpcRequest<AgentTask>(taskIdParams, "task/cancel");
     }
 
-    public async Task<IAsyncEnumerable<SseItem<TaskUpdateEvent>>> SendSubscribe(TaskSendParams taskSendParams) {
-        return null; //TODO
+    public Task<IAsyncEnumerable<SseItem<TaskUpdateEvent>>> SendSubscribe(TaskSendParams taskSendParams) {
+        throw new NotImplementedException(); //TODO
     }
-    public async Task<TaskPushNotificationConfig?> SetPushNotification(TaskPushNotificationConfig? pushNotificationConfig) {
+    public async Task<TaskPushNotificationConfig> SetPushNotification(TaskPushNotificationConfig pushNotificationConfig) {
         return await RpcRequest<TaskPushNotificationConfig>(pushNotificationConfig, "task/pushNotification/set");
     }
-    public async Task<TaskPushNotificationConfig?> GetPushNotification(TaskIdParams taskIdParams) {
-        return await RpcRequest<TaskPushNotificationConfig>(taskIdParams!, "task/pushNotification/get");
+    public async Task<TaskPushNotificationConfig> GetPushNotification(TaskIdParams taskIdParams) {
+        return await RpcRequest<TaskPushNotificationConfig>(taskIdParams, "task/pushNotification/get");
     }
 
     private async Task<OUT> RpcRequest<OUT>(IJsonRpcParams jsonRpcParams, string method) where OUT : class
@@ -50,11 +50,15 @@ public class A2AClient : IA2AClient
             Content = new JsonRpcContent(request)
         });
         response.EnsureSuccessStatusCode();
+        if (response.Content.Headers.ContentType?.MediaType != "application/json")
+        {
+            throw new InvalidOperationException("Invalid content type.");
+        }
         var ctx = new ValidationContext("1.0"); //TODO: ValidationContext should be passed from the caller
         return await Parse<OUT>(response.Content,ctx);
     }
 
-    private async Task<T?> Parse<T>(HttpContent content,ValidationContext validationContext) where T: class
+    private async Task<T> Parse<T>(HttpContent content,ValidationContext validationContext) where T: class
     {
         using var stream = await content.ReadAsStreamAsync();
         var jsonDoc = await JsonDocument.ParseAsync(stream);
@@ -82,7 +86,7 @@ public class A2AClient : IA2AClient
             throw new InvalidOperationException($"Error in response: {jsonRpcResponse.Error.Message} (Code: {jsonRpcResponse.Error.Code})");
         }
         else {
-            return null;
+            throw new InvalidOperationException("Invalid response: no result or error.");
         }
     }
     private Dictionary<Type, Func<JsonElement, ValidationContext, object>> _resultHandlers = new()
@@ -90,7 +94,6 @@ public class A2AClient : IA2AClient
         { typeof(AgentTask),AgentTask.Load },
         { typeof(TaskUpdateEvent), TaskUpdateEvent.LoadDerived },
         { typeof(TaskPushNotificationConfig), TaskPushNotificationConfig.Load }
-
     };
 
 

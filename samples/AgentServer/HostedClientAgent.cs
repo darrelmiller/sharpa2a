@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using A2ALib;
+using SharpA2A.Core;
 
 
 public class HostedClientAgent 

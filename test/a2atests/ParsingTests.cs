@@ -1,12 +1,12 @@
 using System.Runtime.CompilerServices;
 using System.Text.Json;
-using A2ALib;
+using SharpA2A.Core;
 using DomFactory;
 
 namespace A2ATests;
 
 public class ParsingTests  {
-    
+
     [Fact]
     public async Task RoundTripTaskSendParams() {
         // Arrange
@@ -71,12 +71,13 @@ public class ParsingTests  {
         var jsonDoc = await JsonDocument.ParseAsync(stream);
         var context = new ValidationContext("1.0");
         var rpcRequest = JsonRpcRequest.Load(jsonDoc.RootElement, context);
-        IJsonRpcIncomingParams? incomingParams = (IJsonRpcIncomingParams)rpcRequest.Params;
+        IJsonRpcIncomingParams? incomingParams = (IJsonRpcIncomingParams?)rpcRequest.Params;
+        Assert.NotNull(incomingParams);
         var parsedParams = A2AMethods.ParseParameters(context, A2AMethods.TaskSend, incomingParams.Value);
-        
+
         // Act
         var result = (TaskSendParams)parsedParams;
-        
+
         // Assert
         Assert.Equal(taskSendParams.Id, result.Id);
         Assert.Equal(taskSendParams.Message.Parts[0].AsTextPart().Text, result.Message.Parts[0].AsTextPart().Text);

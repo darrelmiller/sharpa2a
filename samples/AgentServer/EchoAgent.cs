@@ -1,9 +1,9 @@
 using System.Diagnostics;
-using A2ALib;
+using SharpA2A.Core;
 
 public class EchoAgent
 {
-    private ITaskManager _TaskManager = new NoopTaskManager();
+    private ITaskManager? _TaskManager = null;
 
     public void Attach(TaskManager taskManager)
     {

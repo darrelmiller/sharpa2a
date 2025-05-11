@@ -1,7 +1,7 @@
 
 using System.Diagnostics;
 
-namespace A2ALib;
+namespace SharpA2A.Core;
 
 public class ResearcherAgent
 {
