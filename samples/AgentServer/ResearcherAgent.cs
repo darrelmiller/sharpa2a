@@ -18,9 +18,6 @@ public class ResearcherAgent
 
     public void Attach(TaskManager taskManager)
     {
-        if (_taskManager == null) {
-            throw new Exception("TaskManager is not attached.");
-        }
         _taskManager = taskManager;
         _taskManager.OnTaskCreated = async (task) => {
             // Iinitialize the agent state for the task

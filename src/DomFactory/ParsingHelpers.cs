@@ -96,7 +96,7 @@ namespace DomFactory
 
         public static TEnum ParseEnums<TEnum>(JsonElement v, string memberName, string objectName, ValidationContext context) where TEnum : struct, Enum
         {
-            if (Enum.TryParse(v.GetString(), out TEnum result))
+            if (Enum.TryParse(v.GetString(), ignoreCase: true, out TEnum result))
             {
                 return result;
             }
