@@ -74,7 +74,7 @@ public class ResearcherAgent
                 await DoResearch(taskId, message);
                 break;
         }
-    }    
+    }
 private async Task DoResearch(string taskId, string message)
     {
         if (_taskManager == null) {
@@ -84,12 +84,12 @@ private async Task DoResearch(string taskId, string message)
         using var activity = ActivitySource.StartActivity("DoResearch", ActivityKind.Server);
         activity?.SetTag("task.id", taskId);
         activity?.SetTag("message", message);
-        
+
         _agentStates[taskId] = AgentState.Researching;
         await _taskManager.UpdateStatusAsync(taskId, TaskState.Working);
 
         await _taskManager.ReturnArtifactAsync(
-            new TaskIdParams() { Id = taskId },
+            taskId,
             new Artifact()
             {
                 Parts = [new TextPart() { Text = $"{message} received." }],
@@ -116,7 +116,7 @@ private async Task DoResearch(string taskId, string message)
         await _taskManager.UpdateStatusAsync(taskId, TaskState.Working);
 
         await _taskManager.ReturnArtifactAsync(
-            new TaskIdParams() { Id = taskId },
+            taskId,
             new Artifact()
             {
                 Parts = [new TextPart() { Text = $"{message} received." }],

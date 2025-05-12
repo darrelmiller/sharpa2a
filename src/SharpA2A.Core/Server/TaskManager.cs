@@ -262,7 +262,7 @@ public class TaskManager : ITaskManager
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="ArgumentException"></exception>
-    public async Task ReturnArtifactAsync(TaskIdParams taskIdParams, Artifact artifact)
+    public async Task ReturnArtifactAsync(string taskId, Artifact artifact)
     {
         if (artifact == null)
         {
@@ -270,11 +270,11 @@ public class TaskManager : ITaskManager
         }
 
         using var activity = ActivitySource.StartActivity("ReturnArtifact", ActivityKind.Server);
-        activity?.SetTag("task.id", taskIdParams.Id);
+        activity?.SetTag("task.id", taskId);
 
         try
         {
-            var task = await _TaskStore.GetTaskAsync(taskIdParams.Id);
+            var task = await _TaskStore.GetTaskAsync(taskId);
             if (task != null)
             {
                 activity?.SetTag("task.found", true);
