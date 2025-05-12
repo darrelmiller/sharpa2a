@@ -1,6 +1,5 @@
-using System.Diagnostics;
-using OpenTelemetry;
 using OpenTelemetry.Context.Propagation;
+using System.Diagnostics;
 
 namespace SharpA2A.Core;
 
@@ -24,6 +23,10 @@ public class TaskManager : ITaskManager
     /// Agent handler for task update.
     /// </summary>
     public Func<AgentTask, Task> OnTaskUpdated { get; set; } = (task) => { return Task.CompletedTask; };
+    /// <summary>
+    /// Agent handler for an agent card query.
+    /// </summary>
+    public Func<string, AgentCard> OnAgentCardQuery { get; set; } = (agentUrl) => { return new AgentCard() { Name = "Unknown", Url = agentUrl }; };
 
     private Dictionary<string, TaskUpdateEventEnumerator> _TaskUpdateEventEnumerators = new Dictionary<string, TaskUpdateEventEnumerator>();
 
@@ -32,6 +35,7 @@ public class TaskManager : ITaskManager
         _CallbackHttpClient = callbackHttpClient ?? new HttpClient();
         _TaskStore = taskStore ?? new InMemoryTaskStore();
     }
+
     public async Task<AgentTask?> CancelTaskAsync(TaskIdParams? taskIdParams)
     {
         if (taskIdParams == null)

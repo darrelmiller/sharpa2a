@@ -39,7 +39,8 @@ public class TaskManagerTests
 
 
     [Fact]
-    public async Task CreateAndRetreiveTask() {
+    public async Task CreateAndRetrieveTask()
+    {
         var taskManager = new TaskManager();
         var taskSendParams = new TaskSendParams
         {
@@ -66,7 +67,8 @@ public class TaskManagerTests
     }
 
     [Fact]
-    public async Task CancelTask() {
+    public async Task CancelTask()
+    {
         var taskManager = new TaskManager();
         var taskSendParams = new TaskSendParams
         {
@@ -93,7 +95,8 @@ public class TaskManagerTests
     }
 
     [Fact]
-    public async Task UpdateTask() {
+    public async Task UpdateTask()
+    {
         var taskManager = new TaskManager()
         {
             OnTaskCreated = (task) =>
@@ -147,7 +150,8 @@ public class TaskManagerTests
     }
 
     [Fact]
-    public async Task UpdateTaskStatus() {
+    public async Task UpdateTaskStatus()
+    {
         var taskManager = new TaskManager();
 
         var taskSendParams = new TaskSendParams
@@ -168,15 +172,15 @@ public class TaskManagerTests
         Assert.Equal("testTask", task.Id);
         Assert.Equal(TaskState.Submitted, task.Status.State);
 
-        await taskManager.UpdateStatusAsync(task.Id, TaskState.Completed,new Message
-            {
-                Parts = [
+        await taskManager.UpdateStatusAsync(task.Id, TaskState.Completed, new Message
+        {
+            Parts = [
                     new TextPart
                     {
                         Text = "Task completed!"
                     }
                 ]
-            }
+        }
         );
         var completedTask = await taskManager.GetTaskAsync(new TaskIdParams { Id = "testTask" });
         Assert.NotNull(completedTask);
@@ -185,7 +189,8 @@ public class TaskManagerTests
     }
 
     [Fact]
-    public async Task ReturnArtifactSync() {
+    public async Task ReturnArtifactSync()
+    {
         var taskManager = new TaskManager();
 
         var taskSendParams = new TaskSendParams
@@ -229,7 +234,8 @@ public class TaskManagerTests
     }
 
     [Fact]
-    public async Task CreateSendSubscribeTask() {
+    public async Task CreateSendSubscribeTask()
+    {
         var taskManager = new TaskManager();
         taskManager.OnTaskCreated = async (task) =>
         {
@@ -264,7 +270,8 @@ public class TaskManagerTests
     }
 
     [Fact]
-    public async Task VerifyTaskEventEnumerator() {
+    public async Task VerifyTaskEventEnumerator()
+    {
         var enumerator = new TaskUpdateEventEnumerator(null);
 
         var task = Task.Run(async () =>

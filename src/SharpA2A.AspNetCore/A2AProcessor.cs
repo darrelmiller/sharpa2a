@@ -1,16 +1,18 @@
+using DomFactory;
+using Microsoft.AspNetCore.Http;
+using SharpA2A.Core;
 using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Text;
 using System.Text.Json;
-using SharpA2A.Core;
-using DomFactory;
-using Microsoft.AspNetCore.Http;
 
 namespace SharpA2A.AspNetCore;
 
 public static class A2AProcessor
 {
-    public static readonly ActivitySource ActivitySource = new ActivitySource("A2A.Processor", "1.0.0"); internal static async Task<JsonRpcResponse> SingleResponse(TaskManager taskManager, HttpContext context, string requestId, string method, IJsonRpcParams? parameters)
+    public static readonly ActivitySource ActivitySource = new ActivitySource("A2A.Processor", "1.0.0");
+
+    internal static async Task<JsonRpcResponse> SingleResponse(TaskManager taskManager, HttpContext context, string requestId, string method, IJsonRpcParams? parameters)
     {
         using var activity = ActivitySource.StartActivity($"SingleResponse/{method}", ActivityKind.Server);
         activity?.SetTag("request.id", requestId);
@@ -36,7 +38,6 @@ public static class A2AProcessor
         switch (method)
         {
             case A2AMethods.TaskSend:
-
                 var agentTask = await taskManager.SendAsync((TaskSendParams)parameters);
                 response = CreateJsonRpcResponse(requestId, agentTask);
                 break;
@@ -101,7 +102,7 @@ public static class A2AProcessor
             var taskSendParams = (TaskSendParams)parameters;
             activity?.SetTag("task.id", taskSendParams.Id);
             activity?.SetTag("task.sessionId", taskSendParams.SessionId);
-            
+
             var taskEvents = await taskManager.SendSubscribeAsync(taskSendParams);
             context.Response.ContentType = "text/event-stream";
             context.Response.StatusCode = StatusCodes.Status200OK;
@@ -118,9 +119,9 @@ public static class A2AProcessor
                         JsonRpc = "2.0"
                     }
                 };
-                  // Capture information about each event
+                // Capture information about each event
                 activity?.AddEvent(new ActivityEvent($"Stream event {eventCount++}"));
-                    
+
                 await sseItem.WriteAsync(context.Response.BodyWriter);
                 await context.Response.BodyWriter.FlushAsync();
             }

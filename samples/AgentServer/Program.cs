@@ -1,9 +1,7 @@
-using SharpA2A.Core;
-using SharpA2A.AspNetCore;
-using System.Diagnostics;
-using OpenTelemetry;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using SharpA2A.AspNetCore;
+using SharpA2A.Core;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,7 +11,8 @@ builder.Services.AddOpenApi();
 
 // Configure OpenTelemetry
 builder.Services.AddOpenTelemetry()
-    .ConfigureResource(resource => {
+    .ConfigureResource(resource =>
+    {
         resource.AddService("A2AAgentServer");
     })
     .WithTracing(tracing => tracing
@@ -30,7 +29,7 @@ builder.Services.AddOpenTelemetry()
             options.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.Grpc;
         })
         );
-        
+
 
 var app = builder.Build();
 
@@ -45,17 +44,17 @@ app.UseHttpsRedirection();
 var echoAgent = new EchoAgent();
 var echoTaskManager = new TaskManager();
 echoAgent.Attach(echoTaskManager);
-app.MapA2A(echoTaskManager,"/echo");
+app.MapA2A(echoTaskManager, "/echo");
 
 var hostedClientAgent = new HostedClientAgent();
 var hostedClientTaskManager = new TaskManager();
 hostedClientAgent.Attach(hostedClientTaskManager);
-app.MapA2A(hostedClientTaskManager,"/hostedclient");
+app.MapA2A(hostedClientTaskManager, "/hostedclient");
 
 var researcherAgent = new ResearcherAgent();
 var researcherTaskManager = new TaskManager();
 researcherAgent.Attach(researcherTaskManager);
-app.MapA2A(researcherTaskManager,"/researcher");
+app.MapA2A(researcherTaskManager, "/researcher");
 
 app.Run();
 
