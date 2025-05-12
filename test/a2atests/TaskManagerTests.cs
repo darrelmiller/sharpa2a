@@ -39,7 +39,7 @@ public class TaskManagerTests
 
 
     [Fact]
-    public async Task CreateAndRetreiveTask()
+    public async Task CreateAndRetrieveTask()
     {
         var taskManager = new TaskManager();
         var taskSendParams = new TaskSendParams

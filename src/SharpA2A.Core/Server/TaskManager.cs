@@ -24,7 +24,7 @@ public class TaskManager : ITaskManager
     /// </summary>
     public Func<AgentTask, Task> OnTaskUpdated { get; set; } = (task) => { return Task.CompletedTask; };
     /// <summary>
-    /// Agent handler for ab agent card query.
+    /// Agent handler for an agent card query.
     /// </summary>
     public Func<string, AgentCard> OnAgentCardQuery { get; set; } = (agentUrl) => { return new AgentCard() { Name = "Unknown", Url = agentUrl }; };
 
