@@ -5,7 +5,7 @@ public interface ITaskManager
     Func<AgentTask, Task> OnTaskCreated { get; set; }
     Func<AgentTask, Task> OnTaskCancelled { get; set; }
     Func<AgentTask, Task> OnTaskUpdated { get; set; }
-
+    Func<string, AgentCard> OnAgentCardQuery { get; set; }
     Task<AgentTask?> CancelTaskAsync(TaskIdParams? taskIdParams);
     Task<TaskPushNotificationConfig?> GetPushNotificationAsync(TaskIdParams? taskIdParams);
     Task<AgentTask?> GetTaskAsync(TaskIdParams? taskIdParams);

@@ -1,12 +1,12 @@
-using SharpA2A.Core;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Routing;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.DependencyInjection;
 using DomFactory;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using System.Text.Json;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using SharpA2A.Core;
 using System.Diagnostics;
+using System.Text.Json;
 
 namespace SharpA2A.AspNetCore;
 
@@ -14,23 +14,33 @@ public static class A2ARouteBuilderExtensions
 {
     public static readonly ActivitySource ActivitySource = new ActivitySource("A2A.Endpoint", "1.0.0");
 
-    public static IEndpointConventionBuilder MapA2A(this IEndpointRouteBuilder endpoints, TaskManager taskManager, string path)
+    public static IEndpointConventionBuilder MapA2A(this IEndpointRouteBuilder endpoints, ITaskManager taskManager, string path)
     {
         var loggerFactory = endpoints.ServiceProvider.GetRequiredService<ILoggerFactory>();
         var logger = loggerFactory.CreateLogger<IEndpointRouteBuilder>();
 
-        var routeGroup = endpoints.MapGroup("");        routeGroup.MapPost(path, requestDelegate: async context =>
+        var routeGroup = endpoints.MapGroup("");
+
+        routeGroup.MapGet($"{path}/.well-known/agent.json", async context =>
+        {
+            var agentUrl = $"{context.Request.Scheme}://{context.Request.Host}{context.Request.Path}";
+            var agentCard = taskManager.OnAgentCardQuery(agentUrl);
+            await context.Response.WriteAsJsonAsync(agentCard);
+        });
+
+        routeGroup.MapPost(path, requestDelegate: async context =>
         {
             using var activity = ActivitySource.StartActivity("HandleA2ARequest", ActivityKind.Server);
             activity?.AddTag("endpoint.path", path);
 
             var validationContext = new ValidationContext("1.0");
             // Parse generic JSON-RPC request
-            var rpcRequest = await A2AProcessor.ParseJsonRpcRequestAsync(validationContext,context.Request.Body, context.RequestAborted);
+            var rpcRequest = await A2AProcessor.ParseJsonRpcRequestAsync(validationContext, context.Request.Body, context.RequestAborted);
 
             // Translate Params JsonElement to a concrete type
             IJsonRpcParams? parsedParameters = null;
-            if (rpcRequest.Params != null) {
+            if (rpcRequest.Params != null)
+            {
                 var incomingParams = (IJsonRpcIncomingParams)rpcRequest.Params;
                 parsedParameters = A2AMethods.ParseParameters(validationContext, rpcRequest.Method, incomingParams.Value);
             }
@@ -64,10 +74,12 @@ public static class A2ARouteBuilderExtensions
                 await context.Response.CompleteAsync();
             }
             else
-            {                try {
+            {
+                try
+                {
                     activity?.AddTag("request.id", rpcRequest.Id);
                     activity?.AddTag("request.method", rpcRequest.Method);
-                    
+
                     var jsonRpcResponse = await A2AProcessor.SingleResponse(taskManager, context, rpcRequest.Id, rpcRequest.Method, parsedParameters);
 
                     context.Response.ContentType = "application/json";

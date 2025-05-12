@@ -19,25 +19,30 @@ public class ResearcherAgent
     public void Attach(TaskManager taskManager)
     {
         _taskManager = taskManager;
-        _taskManager.OnTaskCreated = async (task) => {
-            // Iinitialize the agent state for the task
+        _taskManager.OnTaskCreated = async (task) =>
+        {
+            // Initialize the agent state for the task
             _agentStates[task.Id] = AgentState.Planning;
             // Ignore other content in the task, just assume it is a text message.
             var message = ((TextPart?)task.History?.Last()?.Parts?.FirstOrDefault())?.Text ?? string.Empty;
             await Invoke(task.Id, message);
-         };
-         _taskManager.OnTaskUpdated = async (task) => {
+        };
+        _taskManager.OnTaskUpdated = async (task) =>
+        {
             // Note that the updated callback is helpful to know not to initialize the agent state again.
             var message = ((TextPart?)task.History?.Last()?.Parts?.FirstOrDefault())?.Text ?? string.Empty;
             await Invoke(task.Id, message);
-         };
+        };
+        _taskManager.OnAgentCardQuery = GetAgentCard;
     }
 
     // This is the main entry point for the agent. It is called when a task is created or updated.
     // It probably should have a cancellation token to enable the process to be cancelled.
-    public async Task Invoke(string taskId, string message) {
+    public async Task Invoke(string taskId, string message)
+    {
 
-        if (_taskManager == null) {
+        if (_taskManager == null)
+        {
             throw new Exception("TaskManager is not attached.");
         }
 
@@ -51,9 +56,9 @@ public class ResearcherAgent
             case AgentState.Planning:
                 await DoPlanning(taskId, message);
                 await _taskManager.UpdateStatusAsync(taskId, TaskState.InputRequired, new Message()
-                    {
-                        Parts = [new TextPart() { Text = "When ready say go ahead" }],
-                    });
+                {
+                    Parts = [new TextPart() { Text = "When ready say go ahead" }],
+                });
                 break;
             case AgentState.WaitingForFeedbackOnPlan:
                 if (message == "go ahead")  // Dumb check for now to avoid using an LLM
@@ -74,17 +79,18 @@ public class ResearcherAgent
                 await DoResearch(taskId, message);
                 break;
         }
-    }    
-private async Task DoResearch(string taskId, string message)
+    }
+    private async Task DoResearch(string taskId, string message)
     {
-        if (_taskManager == null) {
+        if (_taskManager == null)
+        {
             throw new Exception("TaskManager is not attached.");
         }
 
         using var activity = ActivitySource.StartActivity("DoResearch", ActivityKind.Server);
         activity?.SetTag("task.id", taskId);
         activity?.SetTag("message", message);
-        
+
         _agentStates[taskId] = AgentState.Researching;
         await _taskManager.UpdateStatusAsync(taskId, TaskState.Working);
 
@@ -99,9 +105,11 @@ private async Task DoResearch(string taskId, string message)
         {
             Parts = [new TextPart() { Text = "Task completed successfully" }],
         });
-    }    private async Task DoPlanning(string taskId, string message)
+    }
+    private async Task DoPlanning(string taskId, string message)
     {
-        if (_taskManager == null) {
+        if (_taskManager == null)
+        {
             throw new Exception("TaskManager is not attached.");
         }
 
@@ -127,5 +135,26 @@ private async Task DoResearch(string taskId, string message)
             Parts = [new TextPart() { Text = "When ready say go ahead" }],
         });
         _agentStates[taskId] = AgentState.WaitingForFeedbackOnPlan;
+    }
+
+    public AgentCard GetAgentCard(string agentUrl)
+    {
+        var capabilities = new AgentCapabilities()
+        {
+            Streaming = true,
+            PushNotifications = false,
+        };
+
+        return new AgentCard()
+        {
+            Name = "Researcher Agent",
+            Description = "Agent which conducts research.",
+            Url = agentUrl,
+            Version = "1.0.0",
+            DefaultInputModes = ["text"],
+            DefaultOutputModes = ["text"],
+            Capabilities = capabilities,
+            Skills = [],
+        };
     }
 }
