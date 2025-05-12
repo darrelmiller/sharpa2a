@@ -4,7 +4,25 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <IsPackable>false</IsPackable>
+    <IsPackable>true</IsPackable>
+    
+    <!-- NuGet Package Metadata -->
+    <PackageId>DomFactory</PackageId>
+    <Version>0.1.0-preview.1</Version>
+    <Authors>Darrel Miller</Authors>
+    <Description>A library for working with DOM objects (Preview)</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/darrelmiller/sharpa2a</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/darrelmiller/sharpa2a.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageReleaseNotes>This is a preview release and is not recommended for production use.</PackageReleaseNotes>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
 </Project>

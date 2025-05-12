@@ -1,8 +1,7 @@
 <Project>
   <PropertyGroup>
-    <Version>0.1.0-preview</Version>
+    <Version>0.1.0-preview.1</Version>
     <Authors>Darrel Miller</Authors>
-    <Company>SharpA2A Contributors</Company>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/darrelmiller/sharpa2a</PackageProjectUrl>
     <RepositoryUrl>https://github.com/darrelmiller/sharpa2a</RepositoryUrl>
