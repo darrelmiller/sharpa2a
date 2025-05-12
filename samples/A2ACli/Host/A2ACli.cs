@@ -7,6 +7,9 @@ using System.Text.Json;
 
 namespace A2A.Host;
 
+/// <summary>
+/// This is a port of the A2A cli from the Google project. Adding this to help ensure we have feature parity.
+/// </summary>
 public static class A2ACli
 {
     public static async Task<int> Main(string[] args)
@@ -103,9 +106,8 @@ public static class A2ACli
             string notificationReceiverHost = notificationReceiverUri.Host;
             int notificationReceiverPort = notificationReceiverUri.Port;
 
-            /*
             // Create A2A client
-            var client = new A2AClient(card);
+            var client = new A2AClient(httpClient);
 
             // Create or use provided session ID
             string sessionId = session == "0" ? Guid.NewGuid().ToString("N") : session;
@@ -113,7 +115,7 @@ public static class A2ACli
             // Main interaction loop
             bool continueLoop = true;
             bool streaming = card.Capabilities.Streaming;
-
+            /*
             while (continueLoop)
             {
                 string taskId = Guid.NewGuid().ToString("N");

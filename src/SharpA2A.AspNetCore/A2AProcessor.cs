@@ -12,7 +12,7 @@ public static class A2AProcessor
 {
     public static readonly ActivitySource ActivitySource = new ActivitySource("A2A.Processor", "1.0.0");
 
-    internal static async Task<JsonRpcResponse> SingleResponse(ITaskManager taskManager, HttpContext context, string requestId, string method, IJsonRpcParams? parameters)
+    internal static async Task<JsonRpcResponse> SingleResponse(TaskManager taskManager, HttpContext context, string requestId, string method, IJsonRpcParams? parameters)
     {
         using var activity = ActivitySource.StartActivity($"SingleResponse/{method}", ActivityKind.Server);
         activity?.SetTag("request.id", requestId);
@@ -74,7 +74,7 @@ public static class A2AProcessor
 
         return response;
     }
-    internal static async Task StreamResponse(ITaskManager taskManager, HttpContext context, string requestId, IJsonRpcParams parameters)
+    internal static async Task StreamResponse(TaskManager taskManager, HttpContext context, string requestId, IJsonRpcParams parameters)
     {
         using var activity = ActivitySource.StartActivity("StreamResponse", ActivityKind.Server);
         activity?.SetTag("request.id", requestId);

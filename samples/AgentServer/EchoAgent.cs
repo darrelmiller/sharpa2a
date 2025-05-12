@@ -33,7 +33,7 @@ public class EchoAgent
                 Text = $"Echo: {message}"
             }]
         };
-        await _TaskManager.ReturnArtifactAsync(new TaskIdParams() { Id = task.Id }, artifact);
+        await _TaskManager.ReturnArtifactAsync(task.Id, artifact);
 
         // Complete the task
         await _TaskManager.UpdateStatusAsync(task.Id, TaskState.Completed, final: true);

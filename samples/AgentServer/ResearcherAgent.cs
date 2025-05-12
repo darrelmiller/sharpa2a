@@ -80,6 +80,7 @@ public class ResearcherAgent
                 break;
         }
     }
+
     private async Task DoResearch(string taskId, string message)
     {
         if (_taskManager == null)
@@ -95,7 +96,7 @@ public class ResearcherAgent
         await _taskManager.UpdateStatusAsync(taskId, TaskState.Working);
 
         await _taskManager.ReturnArtifactAsync(
-            new TaskIdParams() { Id = taskId },
+            taskId,
             new Artifact()
             {
                 Parts = [new TextPart() { Text = $"{message} received." }],
@@ -124,7 +125,7 @@ public class ResearcherAgent
         await _taskManager.UpdateStatusAsync(taskId, TaskState.Working);
 
         await _taskManager.ReturnArtifactAsync(
-            new TaskIdParams() { Id = taskId },
+            taskId,
             new Artifact()
             {
                 Parts = [new TextPart() { Text = $"{message} received." }],

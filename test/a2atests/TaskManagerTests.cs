@@ -222,7 +222,7 @@ public class TaskManagerTests
                 }
             ]
         };
-        await taskManager.ReturnArtifactAsync(new TaskIdParams { Id = "testTask" }, artifact);
+        await taskManager.ReturnArtifactAsync("testTask", artifact);
         await taskManager.UpdateStatusAsync("testTask", TaskState.Completed);
         var completedTask = await taskManager.GetTaskAsync(new TaskIdParams { Id = "testTask" });
         Assert.NotNull(completedTask);

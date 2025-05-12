@@ -14,7 +14,7 @@ public static class A2ARouteBuilderExtensions
 {
     public static readonly ActivitySource ActivitySource = new ActivitySource("A2A.Endpoint", "1.0.0");
 
-    public static IEndpointConventionBuilder MapA2A(this IEndpointRouteBuilder endpoints, ITaskManager taskManager, string path)
+    public static IEndpointConventionBuilder MapA2A(this IEndpointRouteBuilder endpoints, TaskManager taskManager, string path)
     {
         var loggerFactory = endpoints.ServiceProvider.GetRequiredService<ILoggerFactory>();
         var logger = loggerFactory.CreateLogger<IEndpointRouteBuilder>();
