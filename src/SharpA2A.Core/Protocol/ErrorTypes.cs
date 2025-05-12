@@ -47,7 +47,7 @@ public class A2AClientHTTPError : A2AClientError
 /// <summary>
 /// Exception for JSON parsing errors
 /// </summary>
-public class A2AClientJSONError : A2AClientError
+public class A2AClientJsonError : A2AClientError
 {
     /// <summary>
     /// The error message
@@ -58,7 +58,7 @@ public class A2AClientJSONError : A2AClientError
     /// Creates a new JSON error
     /// </summary>
     /// <param name="message">The error message</param>
-    public A2AClientJSONError(string message)
+    public A2AClientJsonError(string message)
         : base($"JSON Error: {message}")
     {
         ErrorMessage = message;
@@ -82,12 +82,12 @@ public class MissingAPIKeyError : Exception
 /// <summary>
 /// Error for JSON parsing failures
 /// </summary>
-public class JSONParseError : JsonRpcError
+public class JsonParseError : JsonRpcError
 {
     /// <summary>
     /// Creates a new JSON parse error
     /// </summary>
-    public JSONParseError()
+    public JsonParseError()
     {
         Code = -32700;
         Message = "Invalid JSON payload";

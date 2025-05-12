@@ -51,19 +51,19 @@ public sealed class A2ACardResolver
 
             response.EnsureSuccessStatusCode();
 
-            var content = await response.Content.ReadAsStringAsync();
+            var content = await response.Content.ReadAsStreamAsync();
 
             var options = new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
             };
 
-            return JsonSerializer.Deserialize<AgentCard>(content, options) ?? throw new A2AClientJSONError($"Failed to parse agent card JSON.");
+            return JsonSerializer.Deserialize<AgentCard>(content, options) ?? throw new A2AClientJsonError($"Failed to parse agent card JSON.");
         }
         catch (JsonException ex)
         {
             _logger?.LogError(ex, "Failed to parse agent card JSON");
-            throw new A2AClientJSONError($"Failed to parse JSON: {ex.Message}");
+            throw new A2AClientJsonError($"Failed to parse JSON: {ex.Message}");
         }
         catch (HttpRequestException ex)
         {
