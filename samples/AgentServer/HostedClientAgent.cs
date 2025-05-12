@@ -52,7 +52,7 @@ public class HostedClientAgent
                 Text = $"EchoAgent said: {message}"
             }]
         };
-        await _TaskManager.ReturnArtifactAsync(new TaskIdParams() {Id = task.Id}, artifact);
+        await _TaskManager.ReturnArtifactAsync(task.Id, artifact);
         await _TaskManager.UpdateStatusAsync(task.Id, TaskState.Completed);
     }
 }
