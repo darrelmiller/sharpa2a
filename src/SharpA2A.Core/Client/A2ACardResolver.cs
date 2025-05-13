@@ -67,7 +67,11 @@ public sealed class A2ACardResolver
         }
         catch (HttpRequestException ex)
         {
+#if NET8_0_OR_GREATER
             int statusCode = (int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError);
+#else
+            int statusCode = (int)System.Net.HttpStatusCode.InternalServerError;
+#endif
             _logger?.LogError(ex, "HTTP request failed with status code {StatusCode}", statusCode);
             throw new A2AClientHTTPError(statusCode, ex.Message);
         }

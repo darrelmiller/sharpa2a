@@ -1,6 +1,4 @@
-using System.Buffers;
 using System.Net;
-using System.Text;
 using System.Text.Json;
 
 namespace SharpA2A.AspNetCore;
@@ -29,18 +27,21 @@ public class JsonRpcContent : HttpContent
         stream.Position = 0;
     }
 
+#if NET8_0_OR_GREATER
     protected override void SerializeToStream(Stream stream, TransportContext? context, CancellationToken cancellationToken)
     {
         this.stream.CopyTo(stream);
     }
+
     protected override async Task SerializeToStreamAsync(Stream stream, TransportContext? context, CancellationToken cancellationToken)
     {
         await this.stream.CopyToAsync(stream, cancellationToken);
     }
+#endif
 
     protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context)
     {
-        SerializeToStream(stream, context,new CancellationToken());
+        this.stream.CopyTo(stream);
         return Task.CompletedTask;
     }
 
