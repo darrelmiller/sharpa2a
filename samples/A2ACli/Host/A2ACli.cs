@@ -114,8 +114,7 @@ public static class A2ACli
 
             // Main interaction loop
             bool continueLoop = true;
-            bool streaming = card.Capabilities.Streaming;
-            /*
+            bool streaming = false; // card.Capabilities.Streaming;
             while (continueLoop)
             {
                 string taskId = Guid.NewGuid().ToString("N");
@@ -132,22 +131,23 @@ public static class A2ACli
                 if (history && continueLoop)
                 {
                     Console.WriteLine("========= history ======== ");
-                    var taskResponse = await client.GetTaskAsync(new TaskQueryParams()
-                    {
-                        Id = taskId,
-                        SessionId = sessionId
-                    });
+                    var taskResponse = await client.GetTask(taskId);
 
                     // Display history in a way similar to the Python version
-                    if (taskResponse.Result?.History != null)
+                    /*
+                    if (taskResponse.History != null)
                     {
                         Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(
-                            new { result = new { history = taskResponse.Result.History } },
+                            new { result = new { history = taskResponse.History } },
                             new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
                     }
+                    */
+                    taskResponse?.History?
+                        .SelectMany(artifact => artifact.Parts.OfType<TextPart>())
+                        .ToList()
+                        .ForEach(textPart => Console.WriteLine(textPart.Text));
                 }
             }
-            */
         }
         catch (Exception ex)
         {
@@ -156,7 +156,6 @@ public static class A2ACli
         }
     }
 
-    /*
     private static async Task<bool> CompleteTaskAsync(
         A2AClient client,
         bool streaming,
@@ -241,7 +240,7 @@ public static class A2ACli
             };
         }
 
-        Task? taskResult = null;
+        AgentTask? agentTask = null;
 
         var jsonOptions = new JsonSerializerOptions
         {
@@ -253,6 +252,7 @@ public static class A2ACli
         Console.WriteLine($"Send task payload => {System.Text.Json.JsonSerializer.Serialize(payload, jsonOptions)}");
         if (streaming)
         {
+            /*
             await foreach (var result in client.SendTaskStreamingAsync(payload))
             {
                 Console.WriteLine($"Stream event => {System.Text.Json.JsonSerializer.Serialize(result, jsonOptions)}");
@@ -260,16 +260,20 @@ public static class A2ACli
 
             var taskResponse = await client.GetTaskAsync(new TaskQueryParams() { Id = taskId });
             taskResult = taskResponse.Result;
+            */
         }
         else
         {
-            var response = await client.SendTaskAsync(payload);
-            taskResult = response?.Result;
-            Console.WriteLine($"\n{System.Text.Json.JsonSerializer.Serialize(response, jsonOptions)}");
+            agentTask = await client.Send(payload);
+            //Console.WriteLine($"\n{System.Text.Json.JsonSerializer.Serialize(agentTask, jsonOptions)}");
+            agentTask?.Artifacts?
+                .SelectMany(artifact => artifact.Parts.OfType<TextPart>())
+                .ToList()
+                .ForEach(textPart => Console.WriteLine(textPart.Text));
         }
 
         // If the task requires more input, continue the interaction
-        if (taskResult?.Status?.State == TaskState.InputRequired)
+        if (agentTask?.Status.State == TaskState.InputRequired)
         {
             return await CompleteTaskAsync(
                 client,
@@ -284,6 +288,5 @@ public static class A2ACli
         // A2ATask is complete
         return true;
     }
-    */
     #endregion
 }
