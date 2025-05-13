@@ -1,12 +1,8 @@
-﻿using System.Diagnostics;
-using System.Text.Json;
-using DomFactory;
+﻿// Warning: This file was largely LLM generated. YMMV
+using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using OpenTelemetry;
-using OpenTelemetry.Context.Propagation;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using SharpA2A.Core;
@@ -19,6 +15,7 @@ class Program
     private const string DefaultAgentName = "Echo Agent";
     private static string agentUrl = DefaultAgentUrl;
     private static string agentName = DefaultAgentName;
+    private static bool useStreamingMode = false;
     private static HttpClient? httpClient;
     private static A2AClient? client;
     private static string currentSessionId = Guid.NewGuid().ToString("N");
@@ -33,13 +30,17 @@ class Program
             return;
         }
 
-        if (args.Length >= 1)
+        // Check for help argument first
+        foreach (var arg in args)
         {
-            // Check for help argument
-            if (args[0].Equals("-h", StringComparison.OrdinalIgnoreCase) ||
-                args[0].Equals("--help", StringComparison.OrdinalIgnoreCase))
+            if (arg.Equals("-h", StringComparison.OrdinalIgnoreCase) ||
+                arg.Equals("--help", StringComparison.OrdinalIgnoreCase))
             {
-                Console.WriteLine("Usage: Client.exe [agentUrl] [agentName]");
+                Console.WriteLine("Usage: Client.exe [options] [agentUrl] [agentName]");
+                Console.WriteLine();
+                Console.WriteLine("Options:");
+                Console.WriteLine("  -s, --stream  Enable streaming mode for responses");
+                Console.WriteLine("  -h, --help    Display this help message");
                 Console.WriteLine();
                 Console.WriteLine("Arguments:");
                 Console.WriteLine("  agentUrl   - URL of the agent endpoint (default: http://localhost:5048/echo)");
@@ -49,9 +50,31 @@ class Program
                 Console.WriteLine("  Client.exe                                       # Use default Echo Agent");
                 Console.WriteLine("  Client.exe http://localhost:5048/researcher      # Use Researcher Agent");
                 Console.WriteLine("  Client.exe http://localhost:5048/travel \"Travel Agent\"  # Use Travel Agent with custom name");
+                Console.WriteLine("  Client.exe -s http://localhost:5048/echo         # Use Echo Agent with streaming mode");
                 Environment.Exit(0);
             }
+        }
 
+        // Check for streaming flag
+        for (int i = 0; i < args.Length; i++)
+        {
+            if (args[i].Equals("-s", StringComparison.OrdinalIgnoreCase) ||
+                args[i].Equals("--stream", StringComparison.OrdinalIgnoreCase))
+            {
+                useStreamingMode = true;
+                
+                // Shift remaining args left if this was the first argument
+                if (i == 0 && args.Length > 1)
+                {
+                    Array.Copy(args, 1, args, 0, args.Length - 1);
+                    Array.Resize(ref args, args.Length - 1);
+                }
+                break;
+            }
+        }
+
+        if (args.Length >= 1 && !args[0].StartsWith("-"))
+        {
             agentUrl = args[0];
         }
 
@@ -82,6 +105,7 @@ class Program
         Console.WriteLine($"{agentName} Chat - A2A Client Experience");
         Console.WriteLine("========================================");
         Console.WriteLine($"Connected to: {agentUrl}");
+        Console.WriteLine($"Mode: {(useStreamingMode ? "Streaming" : "Standard")}");
         Console.WriteLine("Type your message and press Enter to send");
         Console.WriteLine("Type 'exit' to quit");
         Console.WriteLine("========================================");
@@ -103,8 +127,17 @@ class Program
 
             try
             {
-                // Send message to EchoAgent and get response
-                var response = await SendMessageToAgent(userInput);
+                // Choose method based on streaming mode
+                AgentTask response;
+                if (useStreamingMode)
+                {
+                    response = await SendMessageToAgentStreaming(userInput);
+                }
+                else
+                {
+                    response = await SendMessageToAgent(userInput);
+                }
+                
                 DisplayAgentResponse(response);
             }
             catch (Exception ex)
@@ -119,12 +152,6 @@ class Program
     }
     private static void InitializeOpenTelemetry(IHostApplicationBuilder builder)
     {
-        // builder.Logging.AddOpenTelemetry(logging =>
-        // {
-        //     logging.IncludeFormattedMessage = true;
-        //     logging.IncludeScopes = true;
-        // });
-
         builder.Services.AddOpenTelemetry()
             .ConfigureResource(c => c.AddService(ServiceName))
             .WithTracing(tracing =>
@@ -136,6 +163,51 @@ class Program
                     options.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.Grpc;
                 });
             });
+    }
+
+    private static async Task<AgentTask> SendMessageToAgentStreaming(string messageText)
+    {
+        if (client == null)
+        {
+            throw new InvalidOperationException("A2A client is not initialized");
+        }
+
+        // Create a TaskSendParams with the user's message
+        var taskSendParams = new TaskSendParams
+        {
+            Id = Guid.NewGuid().ToString("N"),
+            SessionId = currentSessionId,
+            Message = new Message
+            {
+                Role = "user",
+                Parts = new List<Part>
+                {
+                    new TextPart
+                    {
+                        Type = "text",
+                        Text = messageText
+                    }
+                }
+            }
+        };
+
+        string taskId = taskSendParams.Id;
+        await foreach( var item in client.SendSubscribe(taskSendParams)) {
+            switch(item.Data) {
+                case TaskStatusUpdateEvent taskUpdateEvent:
+                    Console.WriteLine($"Task {taskId} updated: {taskUpdateEvent.Status.State}");
+                    break;
+                case TaskArtifactUpdateEvent taskArtifactEvent:
+                    Console.WriteLine($"Task {taskId} artifact updated: {taskArtifactEvent.Artifact.Name}");
+                    break;
+                default:
+                    Console.WriteLine($"Unknown event type: {item.EventType}");
+                    break;
+            }
+        }
+
+        var result = await client.GetTask(taskId);
+        return result;
     }
 
     private static async Task<AgentTask> SendMessageToAgent(string messageText)
