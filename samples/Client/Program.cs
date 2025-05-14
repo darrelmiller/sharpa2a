@@ -1,15 +1,10 @@
-﻿using System.Diagnostics;
-using System.Text.Json;
-using DomFactory;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using OpenTelemetry;
-using OpenTelemetry.Context.Propagation;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using SharpA2A.Core;
+using System.Diagnostics;
 
 namespace Client;
 
@@ -131,7 +126,8 @@ class Program
             {
                 tracing.AddHttpClientInstrumentation();
                 tracing.AddSource(activitySource.Name);
-                tracing.AddOtlpExporter(options => {
+                tracing.AddOtlpExporter(options =>
+                {
                     options.Endpoint = new Uri("http://localhost:4317");
                     options.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.Grpc;
                 });
