@@ -1,14 +1,11 @@
-using System.Data;
-using System.Reflection.Metadata;
-using System.Reflection.Metadata.Ecma335;
-using System.Text.Json;
-using System.Text.Json.Nodes;
-using System.Text.Json.Serialization;
 using DomFactory;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace SharpA2A.Core;
 
-public enum TaskState {
+public enum TaskState
+{
     [JsonPropertyName("submitted")]
     Submitted,
     [JsonPropertyName("working")]
@@ -25,39 +22,55 @@ public enum TaskState {
     Unknown
 }
 
-public abstract class Part {
+public abstract class Part
+{
     public string Type { get; set; } = "text";
     public Dictionary<string, JsonElement>? Metadata { get; set; }
-  
-    public static Part LoadDerived(JsonElement partElement, ValidationContext context) {
+
+    public static Part LoadDerived(JsonElement partElement, ValidationContext context)
+    {
         Part part;
 
-        if (partElement.TryGetProperty("type", out var typeElement)) {
+        if (partElement.TryGetProperty("type", out var typeElement))
+        {
             var type = typeElement.GetString();
-            if (type == "text") {
+            if (type == "text")
+            {
                 part = TextPart.Load(partElement, context);
-            } else if (type == "file") {
+            }
+            else if (type == "file")
+            {
                 part = FilePart.Load(partElement, context);
-            } else if (type == "data") {
+            }
+            else if (type == "data")
+            {
                 part = DataPart.Load(partElement, context);
-            } else {
+            }
+            else
+            {
                 throw new InvalidOperationException($"Unknown part type: {type}");
             }
-        } else {
+        }
+        else
+        {
             throw new InvalidOperationException("Part type is required.");
         }
         return part;
     }
 
     public abstract void Write(Utf8JsonWriter writer);
-    internal void WriteBase(Utf8JsonWriter writer) {
-        if (Type != null) {
+    internal void WriteBase(Utf8JsonWriter writer)
+    {
+        if (Type != null)
+        {
             writer.WriteString("type", Type);
         }
-        if (Metadata != null) {
+        if (Metadata != null)
+        {
             writer.WritePropertyName("metadata");
             writer.WriteStartObject();
-            foreach (var kvp in Metadata) {
+            foreach (var kvp in Metadata)
+            {
                 writer.WritePropertyName(kvp.Key);
                 kvp.Value.WriteTo(writer);
             }
@@ -65,43 +78,59 @@ public abstract class Part {
         }
     }
 
-    public TextPart AsTextPart() {
-        if (this is TextPart textPart) {
+    public TextPart AsTextPart()
+    {
+        if (this is TextPart textPart)
+        {
             return textPart;
-        } else {
+        }
+        else
+        {
             throw new InvalidCastException($"Cannot cast {this.GetType()} to TextPart.");
         }
     }
-    public FilePart AsFilePart() {
-        if (this is FilePart filePart) {
+    public FilePart AsFilePart()
+    {
+        if (this is FilePart filePart)
+        {
             return filePart;
-        } else {
+        }
+        else
+        {
             throw new InvalidCastException($"Cannot cast {this.GetType()} to FilePart.");
         }
     }
-    public DataPart AsDataPart() {
-        if (this is DataPart dataPart) {
+    public DataPart AsDataPart()
+    {
+        if (this is DataPart dataPart)
+        {
             return dataPart;
-        } else {
+        }
+        else
+        {
             throw new InvalidCastException($"Cannot cast {this.GetType()} to DataPart.");
         }
     }
 }
 
 
-public class TextPart : Part {
+public class TextPart : Part
+{
 
     public string Text { get; set; } = string.Empty;
 
-    public static TextPart Load(JsonElement part, ValidationContext context) {
+    public static TextPart Load(JsonElement part, ValidationContext context)
+    {
         var textPart = new TextPart();
         ParsingHelpers.ParseMap<TextPart>(part, textPart, _handlers, context);
         return textPart;
     }
-    public override void Write(Utf8JsonWriter writer) {
+    public override void Write(Utf8JsonWriter writer)
+    {
         writer.WriteStartObject();
         WriteBase(writer);
-        if (Text != null) {
+        if (Text != null)
+        {
             writer.WriteString("text", Text);
         }
         writer.WriteEndObject();
@@ -114,30 +143,37 @@ public class TextPart : Part {
         };
 }
 
-public class FileContent {
+public class FileContent
+{
     public string? Name { get; set; }
     public string? MimeType { get; set; }
     public string? Bytes { get; set; }
     public string? Uri { get; set; }
 
-    public static FileContent Load(JsonElement fileElement, ValidationContext context) {
+    public static FileContent Load(JsonElement fileElement, ValidationContext context)
+    {
         var fileContent = new FileContent();
         ParsingHelpers.ParseMap<FileContent>(fileElement, fileContent, _handlers, context);
         return fileContent;
     }
 
-    public void Writer(Utf8JsonWriter writer) {
+    public void Writer(Utf8JsonWriter writer)
+    {
         writer.WriteStartObject();
-        if (Name != null) {
+        if (Name != null)
+        {
             writer.WriteString("name", Name);
         }
-        if (MimeType != null) {
+        if (MimeType != null)
+        {
             writer.WriteString("mimeType", MimeType);
         }
-        if (Bytes != null) {
+        if (Bytes != null)
+        {
             writer.WriteString("bytes", Bytes);
         }
-        if (Uri != null) {
+        if (Uri != null)
+        {
             writer.WriteString("uri", Uri);
         }
         writer.WriteEndObject();
@@ -150,19 +186,23 @@ public class FileContent {
         };
 }
 
-public class FilePart : Part {
+public class FilePart : Part
+{
     public FileContent File { get; set; } = new FileContent();
 
-    public static FilePart Load(JsonElement part, ValidationContext context) {
+    public static FilePart Load(JsonElement part, ValidationContext context)
+    {
         var filePart = new FilePart();
         ParsingHelpers.ParseMap<FilePart>(part, filePart, _handlers, context);
         return filePart;
     }
 
-    public override void Write(Utf8JsonWriter writer) {
+    public override void Write(Utf8JsonWriter writer)
+    {
         writer.WriteStartObject();
         WriteBase(writer);
-        if (File != null) {
+        if (File != null)
+        {
             writer.WritePropertyName("file");
             File.Writer(writer);
         }
@@ -176,21 +216,26 @@ public class FilePart : Part {
      };
 }
 
-public class DataPart : Part {
+public class DataPart : Part
+{
     public Dictionary<string, JsonElement> Data { get; set; } = new Dictionary<string, JsonElement>();
 
-    public static DataPart Load(JsonElement part, ValidationContext context) {
+    public static DataPart Load(JsonElement part, ValidationContext context)
+    {
         var dataPart = new DataPart();
         ParsingHelpers.ParseMap<DataPart>(part, dataPart, _handlers, context);
         return dataPart;
     }
 
-    public override void Write(Utf8JsonWriter writer) {
+    public override void Write(Utf8JsonWriter writer)
+    {
         writer.WriteStartObject();
-        if (Data != null) {
+        if (Data != null)
+        {
             writer.WritePropertyName("data");
             writer.WriteStartObject();
-            foreach (var kvp in Data) {
+            foreach (var kvp in Data)
+            {
                 writer.WritePropertyName(kvp.Key);
                 kvp.Value.WriteTo(writer);
             }
@@ -206,32 +251,39 @@ public class DataPart : Part {
      };
 }
 
-public class Message {
+public class Message
+{
     public string Role { get; set; } = string.Empty;
     public List<Part> Parts { get; set; } = new List<Part>();
     public Dictionary<string, JsonElement>? Metadata { get; set; }
 
-    public static Message Load(JsonElement messageElement, ValidationContext context) {
+    public static Message Load(JsonElement messageElement, ValidationContext context)
+    {
         var message = new Message();
         ParsingHelpers.ParseMap<Message>(messageElement, message, _handlers, context);
         return message;
     }
 
-    public void Write(Utf8JsonWriter writer) {
+    public void Write(Utf8JsonWriter writer)
+    {
         writer.WriteStartObject();
         writer.WriteString("role", Role);
-        if (Parts != null) {
+        if (Parts != null)
+        {
             writer.WritePropertyName("parts");
             writer.WriteStartArray();
-            foreach (var part in Parts) {
+            foreach (var part in Parts)
+            {
                 part.Write(writer);
             }
             writer.WriteEndArray();
         }
-        if (Metadata != null) {
+        if (Metadata != null)
+        {
             writer.WritePropertyName("metadata");
             writer.WriteStartObject();
-            foreach (var kvp in Metadata) {
+            foreach (var kvp in Metadata)
+            {
                 writer.WritePropertyName(kvp.Key);
                 kvp.Value.WriteTo(writer);
             }
@@ -248,21 +300,25 @@ public class Message {
 
 }
 
-public class AgentTaskStatus {
+public class AgentTaskStatus
+{
     public TaskState State { get; set; }
     public Message? Message { get; set; }
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 
-    public static AgentTaskStatus Load(JsonElement statusElement, ValidationContext context) {
+    public static AgentTaskStatus Load(JsonElement statusElement, ValidationContext context)
+    {
         var status = new AgentTaskStatus();
         ParsingHelpers.ParseMap<AgentTaskStatus>(statusElement, status, _handlers, context);
         return status;
     }
 
-    public void Write(Utf8JsonWriter writer) {
+    public void Write(Utf8JsonWriter writer)
+    {
         writer.WriteStartObject();
         writer.WriteString("state", State.ToString().ToLowerInvariant());
-        if (Message != null) {
+        if (Message != null)
+        {
             writer.WritePropertyName("message");
             Message.Write(writer);
         }
@@ -277,7 +333,8 @@ public class AgentTaskStatus {
         };
 }
 
-public class Artifact {
+public class Artifact
+{
     public string? Name { get; set; }
     public string? Description { get; set; }
     public List<Part> Parts { get; set; } = new List<Part>();
@@ -286,44 +343,55 @@ public class Artifact {
     public bool? Append { get; set; }
     public bool? LastChunk { get; set; }
 
-    public static Artifact Load(JsonElement artifactElement, ValidationContext context) {
+    public static Artifact Load(JsonElement artifactElement, ValidationContext context)
+    {
         var artifact = new Artifact();
         ParsingHelpers.ParseMap<Artifact>(artifactElement, artifact, _handlers, context);
         return artifact;
     }
 
-    public void Writer(Utf8JsonWriter writer) {
+    public void Writer(Utf8JsonWriter writer)
+    {
         writer.WriteStartObject();
-        if (Name != null) {
+        if (Name != null)
+        {
             writer.WriteString("name", Name);
         }
-        if (Description != null) {
+        if (Description != null)
+        {
             writer.WriteString("description", Description);
         }
-        if (Parts != null) {
+        if (Parts != null)
+        {
             writer.WritePropertyName("parts");
             writer.WriteStartArray();
-            foreach (var part in Parts) {
+            foreach (var part in Parts)
+            {
                 part.Write(writer);
             }
             writer.WriteEndArray();
         }
-        if (Metadata != null) {
+        if (Metadata != null)
+        {
             writer.WritePropertyName("metadata");
             writer.WriteStartObject();
-            foreach (var kvp in Metadata) {
+            foreach (var kvp in Metadata)
+            {
                 writer.WritePropertyName(kvp.Key);
                 kvp.Value.WriteTo(writer);
             }
             writer.WriteEndObject();
         }
-        if (Index != 0) {
+        if (Index != 0)
+        {
             writer.WriteNumber("index", Index);
         }
-        if (Append != null) {
+        if (Append != null)
+        {
             writer.WriteBoolean("append", Append.Value);
         }
-        if (LastChunk != null) {
+        if (LastChunk != null)
+        {
             writer.WriteBoolean("lastChunk", LastChunk.Value);
         }
         writer.WriteEndObject();
@@ -339,7 +407,8 @@ public class Artifact {
         };
 }
 
-public class AgentTask : IJsonRpcOutgoingResult {
+public class AgentTask : IJsonRpcOutgoingResult
+{
     public string Id { get; set; } = string.Empty;
     public string? SessionId { get; set; }
     public AgentTaskStatus Status { get; set; } = new AgentTaskStatus();
@@ -349,43 +418,53 @@ public class AgentTask : IJsonRpcOutgoingResult {
 
     public JsonElement Value => throw new NotImplementedException();
 
-    public static AgentTask Load(JsonElement taskElement, ValidationContext context) {
+    public static AgentTask Load(JsonElement taskElement, ValidationContext context)
+    {
         var task = new AgentTask();
         ParsingHelpers.ParseMap<AgentTask>(taskElement, task, _handlers, context);
         return task;
     }
 
-    public void Write(Utf8JsonWriter writer) {
+    public void Write(Utf8JsonWriter writer)
+    {
         writer.WriteStartObject();
         writer.WriteString("id", Id);
-        if (SessionId != null) {
+        if (SessionId != null)
+        {
             writer.WriteString("sessionId", SessionId);
         }
-        if(Status != null) {
+        if (Status != null)
+        {
             writer.WritePropertyName("status");
             Status.Write(writer);
         }
-        
-        if (Artifacts != null) {
+
+        if (Artifacts != null)
+        {
             writer.WritePropertyName("artifacts");
             writer.WriteStartArray();
-            foreach (var artifact in Artifacts) {
+            foreach (var artifact in Artifacts)
+            {
                 artifact.Writer(writer);
             }
             writer.WriteEndArray();
         }
-        if (History != null) {
+        if (History != null)
+        {
             writer.WritePropertyName("history");
             writer.WriteStartArray();
-            foreach (var message in History) {
+            foreach (var message in History)
+            {
                 message.Write(writer);
             }
             writer.WriteEndArray();
         }
-        if (Metadata != null) {
+        if (Metadata != null)
+        {
             writer.WritePropertyName("metadata");
             writer.WriteStartObject();
-            foreach (var kvp in Metadata) {
+            foreach (var kvp in Metadata)
+            {
                 writer.WritePropertyName(kvp.Key);
                 kvp.Value.WriteTo(writer);
             }
@@ -403,30 +482,39 @@ public class AgentTask : IJsonRpcOutgoingResult {
         };
 }
 
-public abstract class TaskUpdateEvent : IJsonRpcOutgoingResult {
+public abstract class TaskUpdateEvent : IJsonRpcOutgoingResult
+{
     public string Id { get; set; } = string.Empty;
     public string? SessionId { get; set; }
     public Dictionary<string, JsonElement>? Metadata { get; set; }
 
-    public static TaskUpdateEvent LoadDerived(JsonElement eventElement, ValidationContext context) {
+    public static TaskUpdateEvent LoadDerived(JsonElement eventElement, ValidationContext context)
+    {
         TaskUpdateEvent taskUpdateEvent;
-        if (eventElement.TryGetProperty("status", out var statusElement)) {
-                taskUpdateEvent =  TaskStatusUpdateEvent.Load(eventElement, context);
-        } else {
+        if (eventElement.TryGetProperty("status", out var statusElement))
+        {
+            taskUpdateEvent = TaskStatusUpdateEvent.Load(eventElement, context);
+        }
+        else
+        {
             taskUpdateEvent = TaskArtifactUpdateEvent.Load(eventElement, context);
         }
         return taskUpdateEvent;
     }
 
-    public void WriteBase(Utf8JsonWriter writer) {
+    public void WriteBase(Utf8JsonWriter writer)
+    {
         writer.WriteString("id", Id);
-        if (SessionId != null) {
+        if (SessionId != null)
+        {
             writer.WriteString("sessionId", SessionId);
         }
-        if (Metadata != null) {
+        if (Metadata != null)
+        {
             writer.WritePropertyName("metadata");
             writer.WriteStartObject();
-            foreach (var kvp in Metadata) {
+            foreach (var kvp in Metadata)
+            {
                 writer.WritePropertyName(kvp.Key);
                 kvp.Value.WriteTo(writer);
             }
@@ -437,20 +525,24 @@ public abstract class TaskUpdateEvent : IJsonRpcOutgoingResult {
     public abstract void Write(Utf8JsonWriter writer);
 
 }
-public class TaskStatusUpdateEvent : TaskUpdateEvent {
+public class TaskStatusUpdateEvent : TaskUpdateEvent
+{
     public AgentTaskStatus Status { get; set; } = new AgentTaskStatus();
     public bool Final { get; set; } = false;
 
-    public static TaskStatusUpdateEvent Load(JsonElement eventElement, ValidationContext context) {
+    public static TaskStatusUpdateEvent Load(JsonElement eventElement, ValidationContext context)
+    {
         var taskStatusUpdateEvent = new TaskStatusUpdateEvent();
         ParsingHelpers.ParseMap<TaskStatusUpdateEvent>(eventElement, taskStatusUpdateEvent, _handlers, context);
         return taskStatusUpdateEvent;
     }
 
-    public override void Write(Utf8JsonWriter writer) {
+    public override void Write(Utf8JsonWriter writer)
+    {
         writer.WriteStartObject();
         base.WriteBase(writer);
-        if(Status != null) {
+        if (Status != null)
+        {
             writer.WritePropertyName("status");
             Status.Write(writer);
         }
@@ -466,19 +558,23 @@ public class TaskStatusUpdateEvent : TaskUpdateEvent {
         };
 }
 
-public class TaskArtifactUpdateEvent : TaskUpdateEvent {
+public class TaskArtifactUpdateEvent : TaskUpdateEvent
+{
     public Artifact Artifact { get; set; } = new Artifact();
 
-    public static TaskArtifactUpdateEvent Load(JsonElement eventElement, ValidationContext context) {
+    public static TaskArtifactUpdateEvent Load(JsonElement eventElement, ValidationContext context)
+    {
         var taskArtifactUpdateEvent = new TaskArtifactUpdateEvent();
         ParsingHelpers.ParseMap<TaskArtifactUpdateEvent>(eventElement, taskArtifactUpdateEvent, _handlers, context);
         return taskArtifactUpdateEvent;
     }
 
-    public override void Write(Utf8JsonWriter writer) {
+    public override void Write(Utf8JsonWriter writer)
+    {
         writer.WriteStartObject();
         WriteBase(writer);
-        if (Artifact != null) {
+        if (Artifact != null)
+        {
             writer.WritePropertyName("artifact");
             Artifact.Writer(writer);
         }
@@ -495,25 +591,30 @@ public class TaskArtifactUpdateEvent : TaskUpdateEvent {
 
 }
 
-public class AuthenticationInfo {
+public class AuthenticationInfo
+{
     public List<string> Schemes { get; set; } = new List<string>();
     public string? Credentials { get; set; }
 
-    public static AuthenticationInfo Load(JsonElement authElement, ValidationContext context) {
+    public static AuthenticationInfo Load(JsonElement authElement, ValidationContext context)
+    {
         var authInfo = new AuthenticationInfo();
         ParsingHelpers.ParseMap<AuthenticationInfo>(authElement, authInfo, _handlers, context);
         return authInfo;
     }
 
-    public void Writer(Utf8JsonWriter writer) {
+    public void Writer(Utf8JsonWriter writer)
+    {
         writer.WriteStartObject();
         writer.WritePropertyName("schemes");
         writer.WriteStartArray();
-        foreach (var scheme in Schemes) {
+        foreach (var scheme in Schemes)
+        {
             writer.WriteStringValue(scheme);
         }
         writer.WriteEndArray();
-        if (Credentials != null) {
+        if (Credentials != null)
+        {
             writer.WriteString("credentials", Credentials);
         }
         writer.WriteEndObject();
@@ -523,24 +624,29 @@ public class AuthenticationInfo {
             { new("credentials"), (ctx, o, e) => o.Credentials = e.Value.GetString() }
         };
 }
-public class PushNotificationConfig : IJsonRpcOutgoingResult {
+public class PushNotificationConfig : IJsonRpcOutgoingResult
+{
     public string Url { get; set; } = string.Empty;
     public string? Token { get; set; }
     public AuthenticationInfo? Authentication { get; set; }
 
-    public static PushNotificationConfig Load(JsonElement configElement, ValidationContext context) {
+    public static PushNotificationConfig Load(JsonElement configElement, ValidationContext context)
+    {
         var pushNotificationConfig = new PushNotificationConfig();
         ParsingHelpers.ParseMap<PushNotificationConfig>(configElement, pushNotificationConfig, _handlers, context);
         return pushNotificationConfig;
     }
 
-    public void Write(Utf8JsonWriter writer) {
+    public void Write(Utf8JsonWriter writer)
+    {
         writer.WriteStartObject();
         writer.WriteString("url", Url);
-        if (Token != null) {
+        if (Token != null)
+        {
             writer.WriteString("token", Token);
         }
-        if (Authentication != null) {
+        if (Authentication != null)
+        {
             writer.WritePropertyName("authentication");
             Authentication.Writer(writer);
         }
@@ -552,29 +658,35 @@ public class PushNotificationConfig : IJsonRpcOutgoingResult {
             { new("authentication"), (ctx, o, e) => o.Authentication = AuthenticationInfo.Load(e.Value, ctx) }
         };
 }
-public class TaskIdParams : IJsonRpcOutgoingParams {
+public class TaskIdParams : IJsonRpcOutgoingParams
+{
     public string Id { get; set; } = string.Empty;
     public Dictionary<string, JsonElement>? Metadata { get; set; }
 
-    public static TaskIdParams Load(JsonElement paramsElement, ValidationContext context) {
+    public static TaskIdParams Load(JsonElement paramsElement, ValidationContext context)
+    {
         var taskIdParams = new TaskIdParams();
         ParsingHelpers.ParseMap<TaskIdParams>(paramsElement, taskIdParams, _handlers, context);
         return taskIdParams;
     }
 
-    internal void WriteBase(Utf8JsonWriter writer) {
+    internal void WriteBase(Utf8JsonWriter writer)
+    {
         writer.WriteString("id", Id);
-        if (Metadata != null) {
+        if (Metadata != null)
+        {
             writer.WritePropertyName("metadata");
             writer.WriteStartObject();
-            foreach (var kvp in Metadata) {
+            foreach (var kvp in Metadata)
+            {
                 writer.WritePropertyName(kvp.Key);
                 kvp.Value.WriteTo(writer);
             }
             writer.WriteEndObject();
         }
     }
-    public virtual void Write(Utf8JsonWriter writer) {
+    public virtual void Write(Utf8JsonWriter writer)
+    {
         writer.WriteStartObject();
         WriteBase(writer);
         writer.WriteEndObject();
@@ -585,19 +697,23 @@ public class TaskIdParams : IJsonRpcOutgoingParams {
             { new("metadata"), (ctx, o, e) => o.Metadata = ParsingHelpers.GetMap(e.Value, (ie, ctx) => ie, ctx) }
         };
 }
-public class TaskQueryParams : TaskIdParams, IJsonRpcOutgoingParams {
+public class TaskQueryParams : TaskIdParams, IJsonRpcOutgoingParams
+{
     public int? HistoryLength { get; set; }
 
-    public new static TaskQueryParams Load(JsonElement paramsElement, ValidationContext context) {
+    public new static TaskQueryParams Load(JsonElement paramsElement, ValidationContext context)
+    {
         var taskQueryParams = new TaskQueryParams();
         ParsingHelpers.ParseMap<TaskQueryParams>(paramsElement, taskQueryParams, _handlers, context);
         return taskQueryParams;
     }
 
-    public override void Write(Utf8JsonWriter writer) {
+    public override void Write(Utf8JsonWriter writer)
+    {
         writer.WriteStartObject();
         WriteBase(writer);
-        if (HistoryLength != null) {
+        if (HistoryLength != null)
+        {
             writer.WriteNumber("historyLength", HistoryLength.Value);
         }
         writer.WriteEndObject();
@@ -608,7 +724,8 @@ public class TaskQueryParams : TaskIdParams, IJsonRpcOutgoingParams {
             { new("historyLength"), (ctx, o, e) => o.HistoryLength = e.Value.GetInt32() }
         };
 }
-public class TaskSendParams : IJsonRpcOutgoingParams {
+public class TaskSendParams : IJsonRpcOutgoingParams
+{
     public string Id { get; set; } = string.Empty;
     public string SessionId { get; set; } = Guid.NewGuid().ToString("N");
     public Message Message { get; set; } = new Message();
@@ -617,39 +734,48 @@ public class TaskSendParams : IJsonRpcOutgoingParams {
     public int? HistoryLength { get; set; }
     public Dictionary<string, JsonElement>? Metadata { get; set; }
 
-    public static TaskSendParams Load(JsonElement paramsElement, ValidationContext context) {
+    public static TaskSendParams Load(JsonElement paramsElement, ValidationContext context)
+    {
         var taskSendParams = new TaskSendParams();
         ParsingHelpers.ParseMap<TaskSendParams>(paramsElement, taskSendParams, _handlers, context);
         return taskSendParams;
     }
 
-    public void Write(Utf8JsonWriter writer) {
+    public void Write(Utf8JsonWriter writer)
+    {
         writer.WriteStartObject();
         writer.WriteString("id", Id);
         writer.WriteString("sessionId", SessionId);
-        if(Message != null) {
+        if (Message != null)
+        {
             writer.WritePropertyName("message");
             Message.Write(writer);
         }
-        if (AcceptedOutputModes != null) {
+        if (AcceptedOutputModes != null)
+        {
             writer.WritePropertyName("acceptedOutputModes");
             writer.WriteStartArray();
-            foreach (var mode in AcceptedOutputModes) {
+            foreach (var mode in AcceptedOutputModes)
+            {
                 writer.WriteStringValue(mode);
             }
             writer.WriteEndArray();
         }
-        if (PushNotification != null) {
+        if (PushNotification != null)
+        {
             writer.WritePropertyName("pushNotification");
             PushNotification.Write(writer);
         }
-        if (HistoryLength != null) {
+        if (HistoryLength != null)
+        {
             writer.WriteNumber("historyLength", HistoryLength.Value);
         }
-        if (Metadata != null) {
+        if (Metadata != null)
+        {
             writer.WritePropertyName("metadata");
             writer.WriteStartObject();
-            foreach (var kvp in Metadata) {
+            foreach (var kvp in Metadata)
+            {
                 writer.WritePropertyName(kvp.Key);
                 kvp.Value.WriteTo(writer);
             }
@@ -670,7 +796,8 @@ public class TaskSendParams : IJsonRpcOutgoingParams {
 }
 
 
-public class TaskPushNotificationConfig : IJsonRpcOutgoingParams, IJsonRpcOutgoingResult {
+public class TaskPushNotificationConfig : IJsonRpcOutgoingParams, IJsonRpcOutgoingResult
+{
     [JsonPropertyName("id")]
     public string Id { get; set; } = string.Empty;
     [JsonPropertyName("pushNotificationConfig")]
@@ -678,16 +805,19 @@ public class TaskPushNotificationConfig : IJsonRpcOutgoingParams, IJsonRpcOutgoi
 
     public JsonElement Value => throw new NotImplementedException();
 
-    public static TaskPushNotificationConfig Load(JsonElement paramsElement, ValidationContext context) {
+    public static TaskPushNotificationConfig Load(JsonElement paramsElement, ValidationContext context)
+    {
         var taskPushNotificationConfig = new TaskPushNotificationConfig();
         ParsingHelpers.ParseMap<TaskPushNotificationConfig>(paramsElement, taskPushNotificationConfig, _handlers, context);
         return taskPushNotificationConfig;
     }
 
-    public void Write(Utf8JsonWriter writer) {
+    public void Write(Utf8JsonWriter writer)
+    {
         writer.WriteStartObject();
         writer.WriteString("id", Id);
-        if (PushNotificationConfig != null) {
+        if (PushNotificationConfig != null)
+        {
             writer.WritePropertyName("pushNotificationConfig");
             PushNotificationConfig.Write(writer);
         }

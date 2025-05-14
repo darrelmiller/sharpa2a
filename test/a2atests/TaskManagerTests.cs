@@ -31,7 +31,7 @@ public class TaskManagerTests
         Assert.NotNull(task);
         Assert.Equal("testTask", task.Id);
         Assert.Equal(TaskState.Submitted, task.Status.State);
-        Assert.Equal(1, task.History.Count);
+        Assert.Single(task.History);
         Assert.Equal("Hello, World!", (task.History[0].Parts[0] as TextPart).Text);
         Assert.Equal("Hello, World!", messageReceived);
 
@@ -229,7 +229,7 @@ public class TaskManagerTests
         Assert.Equal("testTask", completedTask.Id);
         Assert.Equal(TaskState.Completed, completedTask.Status.State);
         Assert.NotNull(completedTask.Artifacts);
-        Assert.Equal(1, completedTask.Artifacts.Count);
+        Assert.Single(completedTask.Artifacts);
         Assert.Equal("Test Artifact", completedTask.Artifacts[0].Name);
     }
 
