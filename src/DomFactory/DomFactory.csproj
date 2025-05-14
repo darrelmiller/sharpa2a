@@ -10,7 +10,7 @@
 	  
     <!-- NuGet Package Metadata -->
     <PackageId>DomFactory</PackageId>
-    <Version>0.1.0-preview.1</Version>
+    <Version>0.1.0-preview.2</Version>
     <Authors>Darrel Miller</Authors>
     <Description>A library for working with DOM objects (Preview)</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
