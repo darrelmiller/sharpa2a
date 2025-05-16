@@ -1,7 +1,7 @@
-﻿using System.Net.ServerSentEvents;
-using System.Text.Json;
+﻿using DomFactory;
 using SharpA2A.AspNetCore;
-using DomFactory;
+using System.Net.ServerSentEvents;
+using System.Text.Json;
 
 namespace SharpA2A.Core;
 
@@ -124,6 +124,4 @@ public class A2AClient : IA2AClient
         { typeof(TaskUpdateEvent), TaskUpdateEvent.LoadDerived },
         { typeof(TaskPushNotificationConfig), TaskPushNotificationConfig.Load }
     };
-
-
 }

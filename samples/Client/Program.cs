@@ -7,6 +7,7 @@ using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using SharpA2A.Core;
 
+
 namespace Client;
 
 class Program
@@ -158,7 +159,8 @@ class Program
             {
                 tracing.AddHttpClientInstrumentation();
                 tracing.AddSource(activitySource.Name);
-                tracing.AddOtlpExporter(options => {
+                tracing.AddOtlpExporter(options =>
+                {
                     options.Endpoint = new Uri("http://localhost:4317");
                     options.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.Grpc;
                 });

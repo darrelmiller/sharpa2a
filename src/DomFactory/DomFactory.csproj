@@ -1,14 +1,16 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+	  <TargetFrameworks>net9.0;net8.0;netstandard2.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
-    
+	  <NoWarn>$(NoWarn);CS1591</NoWarn>
+	  <LangVersion>12.0</LangVersion>
+	  
     <!-- NuGet Package Metadata -->
     <PackageId>DomFactory</PackageId>
-    <Version>0.1.0-preview.1</Version>
+    <Version>0.1.0-preview.2</Version>
     <Authors>Darrel Miller</Authors>
     <Description>A library for working with DOM objects (Preview)</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -23,6 +25,10 @@
 
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
   </ItemGroup>
 
 </Project>
