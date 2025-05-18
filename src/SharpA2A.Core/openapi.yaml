@@ -40,20 +40,13 @@ paths:
   /tasks/{id}/cancel:
     parameters:
         - $ref: '#/components/parameters/TaskId'
-    post:
-      requestBody:
-        required: true
+    responses:
+      200:
+        description: Task cancelled successfully
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/Task'
-      responses:
-        200:
-          description: Task cancelled successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Task'
   /tasks/{id}/send:
     parameters:
         - $ref: '#/components/parameters/TaskId'
@@ -130,6 +123,14 @@ paths:
   /tasks/{id}/pushNotification:
     parameters:
         - $ref: '#/components/parameters/TaskId'
+    get:
+      responses:
+        200:
+          description: Push notification configuration retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PushNotificationConfig'
     put:
       requestBody:
         required: true

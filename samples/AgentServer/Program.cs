@@ -45,6 +45,7 @@ var echoAgent = new EchoAgent();
 var echoTaskManager = new TaskManager();
 echoAgent.Attach(echoTaskManager);
 app.MapA2A(echoTaskManager, "/echo");
+app.MapHttpA2A(echoTaskManager, "/echo");
 
 var hostedClientAgent = new HostedClientAgent();
 var hostedClientTaskManager = new TaskManager();

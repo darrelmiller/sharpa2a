@@ -119,6 +119,41 @@ public static class A2ARouteBuilderExtensions
         return routeGroup;
     }
 
+
+    public static IEndpointConventionBuilder MapHttpA2A(this IEndpointRouteBuilder endpoints, TaskManager taskManager, string path)
+    {
+        var loggerFactory = endpoints.ServiceProvider.GetRequiredService<ILoggerFactory>();
+        var logger = loggerFactory.CreateLogger<IEndpointRouteBuilder>();
+
+        var routeGroup = endpoints.MapGroup(path);
+
+        // /card endpoint - Agent discovery
+        routeGroup.MapGet("/card", A2AHttpProcessor.GetAgentCardRequestDelegate(taskManager, logger));
+
+        // /tasks/{id} endpoint
+        routeGroup.MapGet("/tasks/{id}", A2AHttpProcessor.GetTaskRequestDelegate(taskManager, logger));
+
+        // /tasks/{id}/cancel endpoint
+        routeGroup.MapPost("/tasks/{id}/cancel", A2AHttpProcessor.CancelTaskRequestDelegate(taskManager, logger));
+
+        // /tasks/{id}/send endpoint
+        routeGroup.MapPost("/tasks/{id}/send", A2AHttpProcessor.SendTaskMessageRequestDelegate(taskManager, logger));
+
+        // /tasks/{id}/sendSubscribe endpoint
+        routeGroup.MapPost("/tasks/{id}/sendSubscribe", A2AHttpProcessor.SendSubscribeTaskRequestDelegate(taskManager, logger));
+
+        // /tasks/{id}/resubscribe endpoint
+        routeGroup.MapPost("/tasks/{id}/resubscribe", A2AHttpProcessor.ResubscribeTaskRequestDelegate(taskManager, logger));
+
+        // /tasks/{id}/pushNotification endpoint - PUT
+        routeGroup.MapPut("/tasks/{id}/pushNotification", A2AHttpProcessor.ConfigurePushNotificationRequestDelegate(taskManager, logger));
+
+        // /tasks/{id}/pushNotification endpoint - DELETE
+        routeGroup.MapDelete("/tasks/{id}/pushNotification", A2AHttpProcessor.DeletePushNotificationRequestDelegate(taskManager, logger));
+
+        return routeGroup;
+    }
+
     internal static void WriteJsonRpcResponse(HttpContext context, JsonRpcResponse jsonRpcResponse)
     {
         var writer = new Utf8JsonWriter(context.Response.BodyWriter);
