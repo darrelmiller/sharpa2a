@@ -32,6 +32,6 @@ jobs:
       - name: Restore dependencies        
         run: dotnet restore 
       - name: Build        
-        run: dotnet build --no-restore --framework ${{ matrix.framework }}
+        run: dotnet build --framework ${{ matrix.framework }}
       - name: Test        
         run: dotnet test --no-build --verbosity normal --framework ${{ matrix.framework }}
