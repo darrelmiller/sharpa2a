@@ -21,10 +21,14 @@ jobs:
             framework: net9.0
     steps:
       - uses: actions/checkout@v4      
-      - name: Setup .NET        
-        uses: actions/setup-dotnet@v4        
+      - name: Setup .NET 9.x 
+        uses: actions/setup-dotnet@v4
         with:          
-          dotnet-version: ${{ matrix.dotnet-version }}      
+          dotnet-version: 9.x
+      - name: Setup .NET ${{ matrix.dotnet-version }}      
+        uses: actions/setup-dotnet@v4 
+        with:          
+          dotnet-version: ${{ matrix.dotnet-version }}
       - name: Restore dependencies        
         run: dotnet restore 
       - name: Build        
