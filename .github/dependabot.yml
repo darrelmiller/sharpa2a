@@ -1,0 +1,17 @@
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: "/"
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+    groups:
+      OpenTelemetry:
+        patterns:
+          - "OpenTelemetry.*"
+          - "Azure.Monitor.OpenTelemetry.Exporter"
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
