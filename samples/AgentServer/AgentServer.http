@@ -51,7 +51,7 @@ Content-Type: application/json
     "jsonrpc": "2.0",
     "method": "task/sendsubscribe",
     "params": {
-        "id": "sendsubscribeTaskId5",
+        "id": "sendsubscribeTaskId6",
         "message": {
             "role": "user",
             "parts": [

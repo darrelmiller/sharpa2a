@@ -1,8 +1,21 @@
 using System.Text.Json;
 using DomFactory;
 
+namespace SharpA2A.Core;
+
 public class JsonRpcResponse
 {
+     public static JsonRpcResponse CreateJsonRpcResponse<T>(string requestId, T result) where T : IJsonRpcResult?
+    {
+        return new JsonRpcResponse()
+        {
+            Id = requestId,
+            Result = result,
+            JsonRpc = "2.0"
+        };
+    }
+
+
     public string JsonRpc { get; set; } = "2.0";
     public string Id { get; set; } = string.Empty;
     public IJsonRpcResult? Result { get; set; }

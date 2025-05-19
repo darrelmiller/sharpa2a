@@ -1,6 +1,52 @@
 using System.Text.Json;
 using DomFactory;
 
+namespace SharpA2A.Core;
+
+public static class JsonRpcErrorResponses
+{
+    public static JsonRpcResponse InvalidParamsResponse(string requestId) => new()
+    {
+        Id = requestId,
+        Error = new InvalidParamsError(),
+        JsonRpc = "2.0"
+    };
+
+    public static JsonRpcResponse MethodNotFoundResponse(string requestId) => new()
+    {
+        Id = requestId,
+        Error = new JsonRpcError
+        {
+            Code = -32601,
+            Message = "Method not found"
+        },
+        JsonRpc = "2.0"
+    };
+
+    public static JsonRpcResponse InternalErrorResponse(string requestId, string message) => new()
+    {
+        Id = requestId,
+        Error = new JsonRpcError
+        {
+            Code = -32603,
+            Message = message
+        },
+        JsonRpc = "2.0"
+    };
+
+    public static JsonRpcResponse ParseErrorResponse(string requestId, string message) => new()
+    {
+        Id = requestId,
+        Error = new JsonRpcError
+        {
+            Code = -32700,
+            Message = message
+        },
+        JsonRpc = "2.0"
+    };
+}
+
+
 public class JsonRpcError
 {
     public int Code { get; set; }

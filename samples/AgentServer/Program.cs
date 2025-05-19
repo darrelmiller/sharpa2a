@@ -17,7 +17,7 @@ builder.Services.AddOpenTelemetry()
     })
     .WithTracing(tracing => tracing
         .AddSource(SharpA2A.Core.TaskManager.ActivitySource.Name)
-        .AddSource(A2AProcessor.ActivitySource.Name)
+        .AddSource(A2AJsonRpcProcessor.ActivitySource.Name)
         .AddSource(HostedClientAgent.ActivitySource.Name)
         .AddSource(ResearcherAgent.ActivitySource.Name)
         .AddAspNetCoreInstrumentation()
