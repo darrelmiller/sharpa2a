@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using SharpA2A.Core;
 
 namespace SharpA2A.AspNetCore;
 
@@ -9,6 +10,7 @@ public class JsonRpcContent : HttpContent
 
     public JsonRpcContent(JsonRpcRequest request)
     {
+        Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
         // Serialize the request to JSON and convert it to a byte array
         stream = new MemoryStream();
         var writer = new Utf8JsonWriter(stream);

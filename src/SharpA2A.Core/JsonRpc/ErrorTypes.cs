@@ -80,66 +80,6 @@ public class MissingAPIKeyError : Exception
 }
 
 /// <summary>
-/// Error for JSON parsing failures
-/// </summary>
-public class JsonParseError : JsonRpcError
-{
-    /// <summary>
-    /// Creates a new JSON parse error
-    /// </summary>
-    public JsonParseError()
-    {
-        Code = -32700;
-        Message = "Invalid JSON payload";
-    }
-}
-
-/// <summary>
-/// Error for invalid requests
-/// </summary>
-public class InvalidRequestError : JsonRpcError
-{
-    /// <summary>
-    /// Creates a new invalid request error
-    /// </summary>
-    public InvalidRequestError()
-    {
-        Code = -32600;
-        Message = "Request payload validation error";
-    }
-}
-
-/// <summary>
-/// Error for method not found
-/// </summary>
-public class MethodNotFoundError : JsonRpcError
-{
-    /// <summary>
-    /// Creates a new method not found error
-    /// </summary>
-    public MethodNotFoundError()
-    {
-        Code = -32601;
-        Message = "Method not found";
-    }
-}
-
-/// <summary>
-/// Error for invalid parameters
-/// </summary>
-public class InvalidParamsError : JsonRpcError
-{
-    /// <summary>
-    /// Creates a new invalid parameters error
-    /// </summary>
-    public InvalidParamsError()
-    {
-        Code = -32602;
-        Message = "Invalid parameters";
-    }
-}
-
-/// <summary>
 /// Error for internal server errors
 /// </summary>
 public class InternalError : JsonRpcError

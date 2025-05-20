@@ -1,5 +1,5 @@
 # Experimental thoughts as to what an HTTP API for A2A might look like
-openapi: 3.1.0
+openapi: 3.1.1
 info:
   title: A2A API
   description: A2A API for enabling Agent to Agent communication
@@ -15,12 +15,19 @@ paths:
               schema:
                 $ref: '#/components/schemas/AgentCard'
   /tasks/{id}:
+    parameters:
+        - $ref: '#/components/parameters/TaskId'
     get:
       parameters:
-        - name: id
-          in: path
-          required: true
-          description: The ID of the task to retrieve
+        - name: historyLength
+          in: query
+          required: false
+          description: The length of the history to retrieve
+          schema:
+            type: integer
+        - name: metadata
+          in: query
+          required: false
           schema:
             type: string
       responses:
@@ -30,31 +37,38 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Task'
-    delete:
+  /tasks/{id}/cancel:
+    parameters:
+        - $ref: '#/components/parameters/TaskId'
+    responses:
+      200:
+        description: Task cancelled successfully
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Task'
+  /tasks/{id}/send:
+    parameters:
+        - $ref: '#/components/parameters/TaskId'
+    post:
       parameters:
-        - name: id
-          in: path
-          required: true
-          description: The ID of the task to delete
+        - name: historyLength
+          in: query
+          required: false
+          description: The length of the history to retrieve
+          schema:
+            type: integer
+        - name: metadata
+          in: query
+          required: false
           schema:
             type: string
-      responses:
-        204:
-          description: Task cancelled successfully
-        200:
-          description: Task cancelled successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Task'
-  /tasks/{id}/send:
-    post:
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Task'
+              $ref: '#/components/schemas/TaskSendParams'
       responses:
         201:
           description: Task sent successfully
@@ -63,32 +77,61 @@ paths:
               schema:
                 $ref: '#/components/schemas/Task'
   /tasks/{id}/sendSubscribe:
+    parameters:
+        - $ref: '#/components/parameters/TaskId'
     post:
+      parameters:
+        - name: historyLength
+          in: query
+          required: false
+          description: The length of the history to retrieve
+          schema:
+            type: integer
+        - name: metadata
+          in: query
+          required: false
+          schema:
+            type: string
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Task'
+              $ref: '#/components/schemas/TaskSendParams'
       responses:
-        201:
+        200:
           description: Task sent successfully
           content:
             text/event-stream:
-              schema:
-                $ref: 
-                  oneOf:
-                    - $ref: '#/components/schemas/TaskStatusUpdatedEvent'
-                    - $ref: 
+              x-itemSchema:
+                oneOf:
+                  - $ref: '#/components/schemas/TaskStatusUpdatedEvent'
+                  - $ref: '#/components/schemas/TaskArtifactUpdatedEvent'
+  /tasks/{id}/resubscribe:
+    parameters:
+        - $ref: '#/components/parameters/TaskId'
+    post:
+      responses:
+        200:
+          description: Task resubscribed successfully
+          content:
+            text/event-stream:
+              x-itemSchema:
+                oneOf:
+                  - $ref: '#/components/schemas/TaskStatusUpdatedEvent'
+                  - $ref: '#/components/schemas/TaskArtifactUpdatedEvent'
   /tasks/{id}/pushNotification:
+    parameters:
+        - $ref: '#/components/parameters/TaskId'
+    get:
+      responses:
+        200:
+          description: Push notification configuration retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PushNotificationConfig'
     put:
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: The ID of the task to set push notification for
-          schema:
-            type: string
       requestBody:
         required: true
         content:
@@ -102,7 +145,25 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PushNotificationConfig'
+    delete:
+        responses:
+          204:
+            description: Push notification configuration deleted successfully
+          200:
+            description: Push notification configuration deleted successfully
+            content:
+                application/json:
+                  schema:
+                      $ref: '#/components/schemas/PushNotificationConfig'
 components:
+  parameters:
+    TaskId:
+      name: id
+      in: path
+      required: true
+      description: The ID of the task to retrieve
+      schema:
+        type: string
   schemas:
     AgentAuthentication:
         properties:
@@ -112,11 +173,7 @@ components:
                 title: Schemes
                 type: array
             credentials:
-                anyOf:
-                    - 
-                        type: string
-                    - 
-                        type: 'null'
+                type: [string, 'null']
                 default: null
                 title: Credentials
         required:
@@ -391,66 +448,6 @@ components:
             - data
         title: PushNotificationNotSupportedError
         type: object
-    CancelTaskRequest:
-        properties:
-            jsonrpc:
-                const: '2.0'
-                default: '2.0'
-                title: Jsonrpc
-                type: string
-            id:
-                anyOf:
-                    - 
-                        type: integer
-                    - 
-                        type: string
-                    - 
-                        type: 'null'
-                title: Id
-            method:
-                const: tasks/cancel
-                default: tasks/cancel
-                title: Method
-                type: string
-            params:
-                $ref: '#/$defs/TaskIdParams'
-        required:
-            - method
-            - params
-        title: CancelTaskRequest
-        type: object
-    CancelTaskResponse:
-        properties:
-            jsonrpc:
-                const: '2.0'
-                default: '2.0'
-                title: Jsonrpc
-                type: string
-            id:
-                anyOf:
-                    - 
-                        type: integer
-                    - 
-                        type: string
-                    - 
-                        type: 'null'
-                title: Id
-            result:
-                anyOf:
-                    - 
-                        $ref: '#/$defs/Task'
-                    - 
-                        type: 'null'
-                default: null
-            error:
-                anyOf:
-                    - 
-                        $ref: '#/$defs/JSONRPCError'
-                    - 
-                        type: 'null'
-                default: null
-        title: CancelTaskResponse
-        type: object
     DataPart:
         properties:
             type:
@@ -548,126 +545,6 @@ components:
             - file
         title: FilePart
         type: object
-    GetTaskPushNotificationRequest:
-        properties:
-            jsonrpc:
-                const: '2.0'
-                default: '2.0'
-                title: Jsonrpc
-                type: string
-            id:
-                anyOf:
-                    - 
-                        type: integer
-                    - 
-                        type: string
-                    - 
-                        type: 'null'
-                title: Id
-            method:
-                const: tasks/pushNotification/get
-                default: tasks/pushNotification/get
-                title: Method
-                type: string
-            params:
-                $ref: '#/$defs/TaskIdParams'
-        required:
-            - method
-            - params
-        title: GetTaskPushNotificationRequest
-        type: object
-    GetTaskPushNotificationResponse:
-        properties:
-            jsonrpc:
-                const: '2.0'
-                default: '2.0'
-                title: Jsonrpc
-                type: string
-            id:
-                anyOf:
-                    - 
-                        type: integer
-                    - 
-                        type: string
-                    - 
-                        type: 'null'
-                title: Id
-            result:
-                anyOf:
-                    - 
-                        $ref: '#/$defs/TaskPushNotificationConfig'
-                    - 
-                        type: 'null'
-                default: null
-            error:
-                anyOf:
-                    - 
-                        $ref: '#/$defs/JSONRPCError'
-                    - 
-                        type: 'null'
-                default: null
-        title: GetTaskPushNotificationResponse
-        type: object
-    GetTaskRequest:
-        properties:
-            jsonrpc:
-                const: '2.0'
-                default: '2.0'
-                title: Jsonrpc
-                type: string
-            id:
-                anyOf:
-                    - 
-                        type: integer
-                    - 
-                        type: string
-                    - 
-                        type: 'null'
-                title: Id
-            method:
-                const: tasks/get
-                default: tasks/get
-                title: Method
-                type: string
-            params:
-                $ref: '#/$defs/TaskQueryParams'
-        required:
-            - method
-            - params
-        title: GetTaskRequest
-        type: object
-    GetTaskResponse:
-        properties:
-            jsonrpc:
-                const: '2.0'
-                default: '2.0'
-                title: Jsonrpc
-                type: string
-            id:
-                anyOf:
-                    - 
-                        type: integer
-                    - 
-                        type: string
-                    - 
-                        type: 'null'
-                title: Id
-            result:
-                anyOf:
-                    - 
-                        $ref: '#/$defs/Task'
-                    - 
-                        type: 'null'
-                default: null
-            error:
-                anyOf:
-                    - 
-                        $ref: '#/$defs/JSONRPCError'
-                    - 
-                        type: 'null'
-                default: null
-        title: GetTaskResponse
-        type: object
     InternalError:
         properties:
             code:
@@ -764,144 +641,6 @@ components:
             - message
         title: InvalidRequestError
         type: object
-    JSONParseError:
-        properties:
-            code:
-                const: -32700
-                default: -32700
-                description: Error code
-                examples:
-                    - -32700
-                title: Code
-                type: integer
-            message:
-                const: Invalid JSON payload
-                default: Invalid JSON payload
-                description: A short description of the error
-                examples:
-                    - Invalid JSON payload
-                title: Message
-                type: string
-            data:
-                anyOf:
-                    - 
-                        additionalProperties: {}
-                        type: object
-                    - 
-                        type: 'null'
-                default: null
-                title: Data
-        required:
-            - code
-            - message
-        title: JSONParseError
-        type: object
-    JSONRPCError:
-        properties:
-            code:
-                title: Code
-                type: integer
-            message:
-                title: Message
-                type: string
-            data:
-                anyOf:
-                    - 
-                        additionalProperties: {}
-                        type: object
-                    - 
-                        type: 'null'
-                default: null
-                title: Data
-        required:
-            - code
-            - message
-        title: JSONRPCError
-        type: object
-    JSONRPCMessage:
-        properties:
-            jsonrpc:
-                const: '2.0'
-                default: '2.0'
-                title: Jsonrpc
-                type: string
-            id:
-                anyOf:
-                    - 
-                        type: integer
-                    - 
-                        type: string
-                    - 
-                        type: 'null'
-                title: Id
-        title: JSONRPCMessage
-        type: object
-    JSONRPCRequest:
-        properties:
-            jsonrpc:
-                const: '2.0'
-                default: '2.0'
-                title: Jsonrpc
-                type: string
-            id:
-                anyOf:
-                    - 
-                        type: integer
-                    - 
-                        type: string
-                    - 
-                        type: 'null'
-                title: Id
-            method:
-                title: Method
-                type: string
-            params:
-                anyOf:
-                    - 
-                        additionalProperties: {}
-                        type: object
-                    - 
-                        type: 'null'
-                default: null
-                title: Params
-        required:
-            - method
-        title: JSONRPCRequest
-        type: object
-    JSONRPCResponse:
-        properties:
-            jsonrpc:
-                const: '2.0'
-                default: '2.0'
-                title: Jsonrpc
-                type: string
-            id:
-                anyOf:
-                    - 
-                        type: integer
-                    - 
-                        type: string
-                    - 
-                        type: 'null'
-                title: Id
-            result:
-                anyOf:
-                    - 
-                        additionalProperties: {}
-                        type: object
-                    - 
-                        type: 'null'
-                default: null
-                title: Result
-            error:
-                anyOf:
-                    - 
-                        $ref: '#/$defs/JSONRPCError'
-                    - 
-                        type: 'null'
-                default: null
-        title: JSONRPCResponse
-        type: object
     Message:
         properties:
             role:
@@ -989,188 +728,6 @@ components:
             - 
                 $ref: '#/$defs/DataPart'
         title: Part
-    SendTaskRequest:
-        properties:
-            jsonrpc:
-                const: '2.0'
-                default: '2.0'
-                title: Jsonrpc
-                type: string
-            id:
-                anyOf:
-                    - 
-                        type: integer
-                    - 
-                        type: string
-                    - 
-                        type: 'null'
-                title: Id
-            method:
-                const: tasks/send
-                default: tasks/send
-                title: Method
-                type: string
-            params:
-                $ref: '#/$defs/TaskSendParams'
-        required:
-            - method
-            - params
-        title: SendTaskRequest
-        type: object
-    SendTaskResponse:
-        properties:
-            jsonrpc:
-                const: '2.0'
-                default: '2.0'
-                title: Jsonrpc
-                type: string
-            id:
-                anyOf:
-                    - 
-                        type: integer
-                    - 
-                        type: string
-                    - 
-                        type: 'null'
-                title: Id
-            result:
-                anyOf:
-                    - 
-                        $ref: '#/$defs/Task'
-                    - 
-                        type: 'null'
-                default: null
-            error:
-                anyOf:
-                    - 
-                        $ref: '#/$defs/JSONRPCError'
-                    - 
-                        type: 'null'
-                default: null
-        title: SendTaskResponse
-        type: object
-    SendTaskStreamingRequest:
-        properties:
-            jsonrpc:
-                const: '2.0'
-                default: '2.0'
-                title: Jsonrpc
-                type: string
-            id:
-                anyOf:
-                    - 
-                        type: integer
-                    - 
-                        type: string
-                    - 
-                        type: 'null'
-                title: Id
-            method:
-                const: tasks/sendSubscribe
-                default: tasks/sendSubscribe
-                title: Method
-                type: string
-            params:
-                $ref: '#/$defs/TaskSendParams'
-        required:
-            - method
-            - params
-        title: SendTaskStreamingRequest
-        type: object
-    SendTaskStreamingResponse:
-        properties:
-            jsonrpc:
-                const: '2.0'
-                default: '2.0'
-                title: Jsonrpc
-                type: string
-            id:
-                anyOf:
-                    - 
-                        type: integer
-                    - 
-                        type: string
-                    - 
-                        type: 'null'
-                title: Id
-            result:
-                anyOf:
-                    - 
-                        $ref: '#/$defs/TaskStatusUpdateEvent'
-                    - 
-                        $ref: '#/$defs/TaskArtifactUpdateEvent'
-                    - 
-                        type: 'null'
-                default: null
-            error:
-                anyOf:
-                    - 
-                        $ref: '#/$defs/JSONRPCError'
-                    - 
-                        type: 'null'
-                default: null
-        title: SendTaskStreamingResponse
-        type: object
-    SetTaskPushNotificationRequest:
-        properties:
-            jsonrpc:
-                const: '2.0'
-                default: '2.0'
-                title: Jsonrpc
-                type: string
-            id:
-                anyOf:
-                    - 
-                        type: integer
-                    - 
-                        type: string
-                    - 
-                        type: 'null'
-                title: Id
-            method:
-                const: tasks/pushNotification/set
-                default: tasks/pushNotification/set
-                title: Method
-                type: string
-            params:
-                $ref: '#/$defs/TaskPushNotificationConfig'
-        required:
-            - method
-            - params
-        title: SetTaskPushNotificationRequest
-        type: object
-    SetTaskPushNotificationResponse:
-        properties:
-            jsonrpc:
-                const: '2.0'
-                default: '2.0'
-                title: Jsonrpc
-                type: string
-            id:
-                anyOf:
-                    - 
-                        type: integer
-                    - 
-                        type: string
-                    - 
-                        type: 'null'
-                title: Id
-            result:
-                anyOf:
-                    - 
-                        $ref: '#/$defs/TaskPushNotificationConfig'
-                    - 
-                        type: 'null'
-                default: null
-            error:
-                anyOf:
-                    - 
-                        $ref: '#/$defs/JSONRPCError'
-                    - 
-                        type: 'null'
-                default: null
-        title: SetTaskPushNotificationResponse
-        type: object
     Task:
         properties:
             id:
@@ -1294,14 +851,9 @@ components:
                 title: Id
                 type: string
             metadata:
-                anyOf:
-                    - 
-                        additionalProperties: {}
-                        type: object
-                    - 
-                        type: 'null'
-                default: null
-                title: Metadata
+              type: [object, 'null']
+              default: null
+              title: Metadata
         required:
             - id
         title: TaskIdParams
@@ -1334,9 +886,6 @@ components:
         type: object
     TaskSendParams:
         properties:
-            id:
-                title: Id
-                type: string
             sessionId:
                 title: Sessionid
                 type: string
@@ -1349,25 +898,7 @@ components:
                     - 
                         type: 'null'
                 default: null
-            historyLength:
-                anyOf:
-                    - 
-                        type: integer
-                    - 
-                        type: 'null'
-                default: null
-                title: HistoryLength
-            metadata:
-                anyOf:
-                    - 
-                        additionalProperties: {}
-                        type: object
-                    - 
-                        type: 'null'
-                default: null
-                title: Metadata
         required:
-            - id
             - message
         title: TaskSendParams
         type: object
@@ -1402,34 +933,7 @@ components:
             - state
         title: TaskStatus
         type: object
-    TaskResubscriptionRequest:
-        properties:
-            jsonrpc:
-                const: '2.0'
-                default: '2.0'
-                title: Jsonrpc
-                type: string
-            id:
-                anyOf:
-                    - 
-                        type: integer
-                    - 
-                        type: string
-                    - 
-                        type: 'null'
-                title: Id
-            method:
-                const: tasks/resubscribe
-                default: tasks/resubscribe
-                title: Method
-                type: string
-            params:
-                $ref: '#/$defs/TaskQueryParams'
-        required:
-            - method
-            - params
-        title: TaskResubscriptionRequest
-        type: object
+
     TaskStatusUpdateEvent:
         properties:
             id:
@@ -1463,12 +967,7 @@ components:
             artifact:
                 $ref: '#/$defs/Artifact'
             metadata:
-                anyOf:
-                    - 
-                        additionalProperties: {}
-                        type: object
-                    - 
-                        type: 'null'
+                type: [object, 'null']
                 default: null
                 title: Metadata
         required:
@@ -1490,12 +989,7 @@ components:
                 title: Text
                 type: string
             metadata:
-                anyOf:
-                    - 
-                        additionalProperties: {}
-                        type: object
-                    - 
-                        type: 'null'
+                type: [object, 'null']
                 default: null
                 title: Metadata
         required:
@@ -1531,18 +1025,3 @@ components:
             - data
         title: UnsupportedOperationError
         type: object
-    A2ARequest:
-        oneOf:
-            - 
-                $ref: '#/$defs/SendTaskRequest'
-            - 
-                $ref: '#/$defs/GetTaskRequest'
-            - 
-                $ref: '#/$defs/CancelTaskRequest'
-            - 
-                $ref: '#/$defs/SetTaskPushNotificationRequest'
-            - 
-                $ref: '#/$defs/GetTaskPushNotificationRequest'
-            - 
-                $ref: '#/$defs/TaskResubscriptionRequest'
-        title: A2ARequest

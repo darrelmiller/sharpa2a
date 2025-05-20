@@ -13,7 +13,7 @@ builder.Services.AddOpenTelemetry()
     })
     .WithTracing(tracing => tracing
         .AddSource(SharpA2A.Core.TaskManager.ActivitySource.Name)
-        .AddSource(A2AProcessor.ActivitySource.Name)
+        .AddSource(A2AJsonRpcProcessor.ActivitySource.Name)
         .AddSource(HostedClientAgent.ActivitySource.Name)
         .AddSource(ResearcherAgent.ActivitySource.Name)
         .AddAspNetCoreInstrumentation()
@@ -35,6 +35,7 @@ var echoAgent = new EchoAgent();
 var echoTaskManager = new TaskManager();
 echoAgent.Attach(echoTaskManager);
 app.MapA2A(echoTaskManager, "/echo");
+app.MapHttpA2A(echoTaskManager, "/echo");
 
 var hostedClientAgent = new HostedClientAgent();
 var hostedClientTaskManager = new TaskManager();

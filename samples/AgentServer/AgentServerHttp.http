@@ -1,0 +1,41 @@
+@host = http://localhost:5048
+
+### Query agent card for the echo agent
+GET {{host}}/echo/card
+
+### Send a task to the echo agent
+POST {{host}}/echo/tasks/12345/send
+Content-Type: application/json
+
+{
+        "message": {
+            "role": "user",
+            "parts": [
+                {
+                    "type": "text",
+                    "text": "Hello, world!"
+                }
+            ]
+        }
+}
+
+
+###
+GET {{host}}/echo/tasks/12345
+
+### SendSubscribe a task to the echo agent
+POST {{host}}/echo/tasks/sendsubscribeTaskId2/sendsubscribe
+Content-Type: application/json
+
+{
+        "message": {
+            "role": "user",
+            "parts": [
+                {
+                    "type": "text",
+                    "text": "Hello, world!"
+                }
+            ]
+        }
+}
+
