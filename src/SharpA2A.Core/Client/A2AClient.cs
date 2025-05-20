@@ -27,10 +27,33 @@ public class A2AClient : IA2AClient
         return await RpcRequest<AgentTask>(taskIdParams, "task/cancel");
     }
 
-    public Task<IAsyncEnumerable<SseItem<TaskUpdateEvent>>> SendSubscribe(TaskSendParams taskSendParams)
+    public async IAsyncEnumerable<SseItem<TaskUpdateEvent>> SendSubscribe(TaskSendParams taskSendParams)
     {
-        throw new NotImplementedException(); //TODO
+        var request = new JsonRpcRequest()
+        {
+            Id = Guid.NewGuid().ToString(),
+            Method = A2AMethods.TaskSendSubscribe,
+            Params = taskSendParams
+        };
+        var response = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "")
+        {
+            Content = new JsonRpcContent(request)
+        });
+        response.EnsureSuccessStatusCode();
+        var stream = await response.Content.ReadAsStreamAsync();
+        var validationContext = new ValidationContext("1.0"); 
+        var sseParser = SseParser.Create<TaskUpdateEvent>(stream, (eventType, data) =>
+        {
+            var reader = new Utf8JsonReader(data);
+            var doc = JsonDocument.ParseValue(ref reader);
+            return Parse<TaskUpdateEvent>(doc, validationContext);
+        });
+        await foreach (var item in sseParser.EnumerateAsync())
+        {
+            yield return item;
+        }
     }
+
     public async Task<TaskPushNotificationConfig> SetPushNotification(TaskPushNotificationConfig pushNotificationConfig)
     {
         return await RpcRequest<TaskPushNotificationConfig>(pushNotificationConfig, "task/pushNotification/set");
@@ -65,13 +88,13 @@ public class A2AClient : IA2AClient
     {
         using var stream = await content.ReadAsStreamAsync();
         var jsonDoc = await JsonDocument.ParseAsync(stream);
-        var jsonElement = jsonDoc.RootElement;
-        var jsonRpcResponse = JsonRpcResponse.Load(jsonElement, validationContext);
 
-        if (jsonRpcResponse == null)
-        {
-            throw new InvalidOperationException("Failed to deserialize response.");
-        }
+        return Parse<T>(jsonDoc, validationContext);
+    }
+
+    private T Parse<T>(JsonDocument jsonDoc, ValidationContext validationContext) where T : class
+    {
+        var jsonRpcResponse = JsonRpcResponse.Load(jsonDoc.RootElement, validationContext) ?? throw new InvalidOperationException("Failed to deserialize response.");
         if (jsonRpcResponse.Result != null)
         {
             _resultHandlers.TryGetValue(typeof(T), out var handler);
