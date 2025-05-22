@@ -6,10 +6,7 @@ using Polly;
 using SharpA2A.Core;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace SemanticKernelAgent;
 
@@ -94,35 +91,8 @@ public class CurrencyPlugin
     {
         int statusCode = (int)response.StatusCode;
         return statusCode == 408 // Request Timeout
-            || statusCode == 429 // Too Many Requests 
+            || statusCode == 429 // Too Many Requests
             || statusCode >= 500 && statusCode < 600; // Server errors
-    }
-}
-#endregion
-
-#region Response Format
-/// <summary>
-/// A Response Format model to direct how the model should respond
-/// </summary>
-public class ResponseFormat
-{
-    [JsonPropertyName("status")]
-    public string Status { get; set; } = "input_required";
-
-    [JsonPropertyName("message")]
-    public string Message { get; set; } = "";
-
-    public static ResponseFormat FromJson(string json)
-    {
-        try
-        {
-            return JsonSerializer.Deserialize<ResponseFormat>(json) ??
-                   new ResponseFormat { Status = "error", Message = "Failed to parse response" };
-        }
-        catch
-        {
-            return new ResponseFormat { Status = "error", Message = "Invalid response format" };
-        }
     }
 }
 #endregion
@@ -235,112 +205,6 @@ public class SemanticKernelTravelAgent : IDisposable
         };
     }
 
-    /// <summary>
-    /// Handle synchronous tasks (like tasks/send)
-    /// </summary>
-    /// <param name="userInput">User input message</param>
-    /// <param name="sessionId">Unique identifier for the session</param>
-    /// <returns>A dictionary containing the content, task completion status, and user input requirement</returns>
-    public async Task<Dictionary<string, object>> InvokeAsync(string userInput, string sessionId, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            _logger.LogInformation("Processing user request for session {SessionId}", sessionId);
-            await EnsureThreadExistsAsync(sessionId);
-
-            var response = _agent.InvokeAsync(
-                message: userInput,
-                thread: _thread,
-                cancellationToken: cancellationToken);
-
-            return await GetAgentResponseAsync(response);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error processing request for session {SessionId}", sessionId);
-            return new Dictionary<string, object>
-            {
-                ["is_task_complete"] = false,
-                ["require_user_input"] = true,
-                ["content"] = $"An error occurred while processing your request: {ex.Message}"
-            };
-        }
-    }
-
-    /// <summary>
-    /// For streaming tasks (like tasks/sendSubscribe), we yield partial progress using SK agent's invoke_stream
-    /// </summary>
-    /// <param name="userInput">User input message</param>
-    /// <param name="sessionId">Unique identifier for the session</param>
-    /// <returns>An async enumerable of dictionaries containing the content, task completion status, and user input requirement</returns>
-    public async IAsyncEnumerable<Dictionary<string, object>> InvokeStreamingAsync(string userInput, string sessionId, [EnumeratorCancellation] CancellationToken cancellationToken = default)
-    {
-        _logger.LogInformation("Starting streaming request for session {SessionId}", sessionId);
-        await EnsureThreadExistsAsync(sessionId);
-
-        List<StreamingChatMessageContent> chunks = new();
-
-        // For the sample, to avoid too many messages, only show one "in-progress" message for each task
-        bool toolCallInProgress = false;
-        bool messageInProgress = false;
-
-        await foreach (var streamingContent in _agent.InvokeStreamingAsync(
-            message: userInput,
-            thread: _thread)
-            .WithCancellation(cancellationToken))
-        {
-            // Check if we have a function call in progress
-            bool hasFunctionCall = streamingContent.Message.Items.Any(item => item is StreamingFunctionCallUpdateContent);
-
-            if (hasFunctionCall && !toolCallInProgress)
-            {
-                toolCallInProgress = true;
-                yield return new Dictionary<string, object>
-                {
-                    ["is_task_complete"] = false,
-                    ["require_user_input"] = false,
-                    ["content"] = "Processing the trip plan (with plugins)..."
-                };
-            }
-            else if (!hasFunctionCall && !messageInProgress && streamingContent.Message.Items.Any(item => item is StreamingTextContent))
-            {
-                messageInProgress = true;
-                yield return new Dictionary<string, object>
-                {
-                    ["is_task_complete"] = false,
-                    ["require_user_input"] = false,
-                    ["content"] = "Building the trip plan..."
-                };
-            }
-
-            // Collect all chunks to build the final message
-            chunks.Add(streamingContent);
-        }
-
-        // Once streaming is done, combine all chunks and return final result
-        if (chunks.Count > 0)
-        {
-            // Extract the content from all chunks
-            var content = string.Join("", chunks.Select(c =>
-                string.Join("", c.Items
-                    .Where(i => i is StreamingTextContent)
-                    .Select(i => ((StreamingTextContent)i).Text))));
-
-            yield return GetAgentResponse(content);
-        }
-        else
-        {
-            yield return new Dictionary<string, object>
-            {
-                ["is_task_complete"] = false,
-                ["require_user_input"] = true,
-                ["content"] = "No response was generated. Please try again."
-            };
-        }
-    }
-
-
-
     #region private
     private readonly ILogger _logger;
     private readonly IConfiguration _configuration;
@@ -357,19 +221,23 @@ public class SemanticKernelTravelAgent : IDisposable
     {
         try
         {
-            string apiKey = _configuration["OPENAI_API_KEY"] ?? throw new ArgumentException("OPENAI_API_KEY must be provided");
-            string modelId = _configuration["OPENAI_CHAT_MODEL_ID"] ?? "gpt-4.1";
+            var openAiConfig = _configuration.GetSection("OpenAI") ?? throw new ArgumentException("OpenAI configuration must be provided");
+            string apiKey = openAiConfig["ApiKey"] ?? throw new ArgumentException("OPENAI_API_KEY must be provided");
+            string modelId = openAiConfig["Model"] ?? "gpt-4.1";
 
-            _logger.LogInformation("Initializing Semantic Kernel agent with model {ModelId}", modelId);
+            _logger.LogInformation($"Initializing Semantic Kernel agent with model {modelId}", modelId);
 
             // Define the TravelPlannerAgent
             var builder = Kernel.CreateBuilder();
             builder.AddOpenAIChatCompletion(modelId, apiKey);
             builder.Plugins.AddFromObject(_currencyPlugin);
+
             var kernel = builder.Build();
             var travelPlannerAgent = new ChatCompletionAgent()
             {
                 Kernel = kernel,
+                Arguments = new KernelArguments(new PromptExecutionSettings()
+                    { FunctionChoiceBehavior = FunctionChoiceBehavior.Auto() }),
                 Name = "TravelPlannerAgent",
                 Instructions =
                     """
@@ -394,113 +262,6 @@ public class SemanticKernelTravelAgent : IDisposable
         {
             _logger.LogError(ex, "Failed to initialize Semantic Kernel agent");
             throw;
-        }
-    }
-
-    /// <summary>
-    /// Ensure the thread exists for the given session ID
-    /// </summary>
-    /// <param name="sessionId">Unique identifier for the session</param>
-    private async Task EnsureThreadExistsAsync(string sessionId)
-    {
-        if (_thread == null || _thread.Id != sessionId)
-        {
-            if (_thread != null)
-            {
-                await Task.CompletedTask; // In C# we don't need to explicitly delete the thread
-            }
-
-            _thread = new ChatHistoryAgentThread([], sessionId);
-            _logger.LogInformation("Created new thread for session {SessionId}", sessionId);
-        }
-    }
-
-    /// <summary>
-    /// Extracts the structured response from the agent's message content
-    /// </summary>
-    /// <param name="content">The message content from the agent</param>
-    /// <returns>A dictionary containing the content, task completion status, and user input requirement</returns>
-    private async Task<Dictionary<string, object>> GetAgentResponseAsync(IAsyncEnumerable<AgentResponseItem<ChatMessageContent>> responses)
-    {
-        StringBuilder content = new();
-        await foreach (AgentResponseItem<ChatMessageContent> response in responses)
-        {
-            content.Append(response.Message.Content);
-        }
-
-        return GetAgentResponse(content.ToString());
-    }
-
-    /// <summary>
-    /// Extracts the structured response from the agent's message content
-    /// </summary>
-    /// <param name="content">The message content from the agent</param>
-    /// <returns>A dictionary containing the content, task completion status, and user input requirement</returns>
-    private async Task<Dictionary<string, object>> GetAgentResponseAsync(IAsyncEnumerable<AgentResponseItem<StreamingChatMessageContent>> responses)
-    {
-        StringBuilder content = new();
-        await foreach (AgentResponseItem<StreamingChatMessageContent> response in responses)
-        {
-            content.Append(response.Message.Content);
-        }
-
-        return GetAgentResponse(content.ToString());
-    }
-
-    /// <summary>
-    /// Extracts the structured response from the agent's message content
-    /// </summary>
-    /// <param name="content">The message content from the agent</param>
-    /// <returns>A dictionary containing the content, task completion status, and user input requirement</returns>
-    private Dictionary<string, object> GetAgentResponse(string content)
-    {
-        try
-        {
-            var structuredResponse = ResponseFormat.FromJson(content);
-
-            var defaultResponse = new Dictionary<string, object>
-            {
-                ["is_task_complete"] = false,
-                ["require_user_input"] = true,
-                ["content"] = "We are unable to process your request at the moment. Please try again."
-            };
-
-            var responseMap = new Dictionary<string, Dictionary<string, object>>
-            {
-                ["input_required"] = new()
-                {
-                    ["is_task_complete"] = false,
-                    ["require_user_input"] = true
-                },
-                ["error"] = new()
-                {
-                    ["is_task_complete"] = false,
-                    ["require_user_input"] = true
-                },
-                ["completed"] = new()
-                {
-                    ["is_task_complete"] = true,
-                    ["require_user_input"] = false
-                }
-            };
-
-            if (responseMap.TryGetValue(structuredResponse.Status, out var responseDict))
-            {
-                responseDict["content"] = structuredResponse.Message;
-                return responseDict;
-            }
-
-            return defaultResponse;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error parsing agent response");
-            return new Dictionary<string, object>
-            {
-                ["is_task_complete"] = false,
-                ["require_user_input"] = true,
-                ["content"] = "We encountered an error parsing the response. Please try again."
-            };
         }
     }
 

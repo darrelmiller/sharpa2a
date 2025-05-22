@@ -2,19 +2,28 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+    <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.SemanticKernel.Agents.Core" Version="1.51.0" />
-    <PackageReference Include="Microsoft.SemanticKernel.Agents.OpenAI" Version="1.47.0-preview" />
+    <PackageReference Include="Microsoft.SemanticKernel.Agents.Core" Version="1.53.1" />
+    <PackageReference Include="Microsoft.SemanticKernel.Agents.OpenAI" Version="1.53.1-preview" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.12.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.12.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.12.0" />    
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\SharpA2A.AspNetCore\SharpA2A.AspNetCore.csproj" />
     <ProjectReference Include="..\..\src\SharpA2A.Core\SharpA2A.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="appsettings.Development.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
