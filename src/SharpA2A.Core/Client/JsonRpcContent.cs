@@ -11,21 +11,28 @@ public class JsonRpcContent : HttpContent
     public JsonRpcContent(JsonRpcRequest request)
     {
         Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
-        // Serialize the request to JSON and convert it to a byte array
+
+        // Serialize the request directly to the stream
         stream = new MemoryStream();
-        var writer = new Utf8JsonWriter(stream);
-        request.Write(writer);
-        writer.Flush();
+        JsonSerializer.Serialize(stream, request, new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = false
+        });
         stream.Position = 0;
     }
+
     public JsonRpcContent(JsonRpcResponse response)
     {
         Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
-        // Serialize the response to JSON and convert it to a byte array
+
+        // Serialize the response directly to the stream
         stream = new MemoryStream();
-        var writer = new Utf8JsonWriter(stream);
-        response.Write(writer);
-        writer.Flush();
+        JsonSerializer.Serialize(stream, response, response.GetType(), new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = false
+        });
         stream.Position = 0;
     }
 

@@ -1,4 +1,3 @@
-using DomFactory;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -7,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using SharpA2A.Core;
 using System.Diagnostics;
-using System.Text.Json;
+
 
 namespace SharpA2A.AspNetCore;
 
@@ -68,11 +67,11 @@ public static class A2ARouteBuilderExtensions
         routeGroup.MapPost("/tasks/{id}/cancel", (string id) => A2AHttpProcessor.CancelTask(taskManager, logger, id));
 
         // /tasks/{id}/send endpoint
-        routeGroup.MapPost("/tasks/{id}/send", (string id, [FromBody] TaskSendParams sendParams, int? historyLength, string? metadata) =>
+        routeGroup.MapPost("/tasks/{id}/send", (string id, [FromBody] MessageSendParams sendParams, int? historyLength, string? metadata) =>
                                                                     A2AHttpProcessor.SendTaskMessage(taskManager, logger, id, sendParams, historyLength, metadata));
 
         // /tasks/{id}/sendSubscribe endpoint
-        routeGroup.MapPost("/tasks/{id}/sendSubscribe", (string id, [FromBody] TaskSendParams sendParams, int? historyLength, string? metadata) =>
+        routeGroup.MapPost("/tasks/{id}/sendSubscribe", (string id, [FromBody] MessageSendParams sendParams, int? historyLength, string? metadata) =>
                                                                     A2AHttpProcessor.SendSubscribeTaskMessage(taskManager, logger, id, sendParams, historyLength, metadata));
 
         // /tasks/{id}/resubscribe endpoint

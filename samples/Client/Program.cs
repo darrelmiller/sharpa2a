@@ -175,10 +175,8 @@ class Program
         }
 
         // Create a TaskSendParams with the user's message
-        var taskSendParams = new TaskSendParams
+        var taskSendParams = new MessageSendParams
         {
-            Id = Guid.NewGuid().ToString("N"),
-            SessionId = currentSessionId,
             Message = new Message
             {
                 Role = "user",
@@ -186,7 +184,6 @@ class Program
                 {
                     new TextPart
                     {
-                        Type = "text",
                         Text = messageText
                     }
                 }
@@ -235,7 +232,7 @@ class Program
         Console.WriteLine($"Debug: Started activity {activity?.Id} of kind {activity?.Kind}");
 
         // Create a TaskSendParams with the user's message
-        var taskSendParams = new TaskSendParams
+        var taskSendParams = new MessageSendParams
         {
             Id = Guid.NewGuid().ToString("N"),
             SessionId = currentSessionId,

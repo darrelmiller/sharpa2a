@@ -1,4 +1,3 @@
-using DomFactory;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using SharpA2A.Core;
@@ -43,7 +42,7 @@ public class A2AHttpProcessor
             {
                 Id = id.ToString(),
                 HistoryLength = historyLength,
-                Metadata = string.IsNullOrEmpty(metadata) ? null : ParsingHelpers.GetMap(JsonDocument.Parse(metadata).RootElement, (ie, ctx) => ie, new ValidationContext("1.0"))
+                Metadata = String.IsNullOrWhiteSpace(metadata) ? null : JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(metadata)    
             });
 
             if (agentTask == null)
@@ -82,16 +81,19 @@ public class A2AHttpProcessor
         }
     }
 
-    internal static async Task<IResult> SendTaskMessage(TaskManager taskManager, ILogger logger, string id, TaskSendParams sendParams, int? historyLength, string? metadata)
+    internal static async Task<IResult> SendTaskMessage(TaskManager taskManager, ILogger logger, string id, MessageSendParams sendParams, int? historyLength, string? metadata)
     {
         using var activity = ActivitySource.StartActivity("SendTaskMessage", ActivityKind.Server);
         activity?.AddTag("task.id", id);
 
         try
         {
-            sendParams.Id = id;
-            sendParams.HistoryLength = historyLength;
-            sendParams.Metadata = string.IsNullOrEmpty(metadata) ? null : ParsingHelpers.GetMap(JsonDocument.Parse(metadata).RootElement, (ie, ctx) => ie, new ValidationContext("1.0"));
+            sendParams.Message.TaskId = id;
+            sendParams.Configuration = new MessageSendConfiguration
+            {
+                HistoryLength = historyLength
+            };
+            sendParams.Metadata = String.IsNullOrWhiteSpace(metadata) ? null : JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(metadata);
 
             var agentTask = await taskManager.SendAsync(sendParams);
             if (agentTask == null)
@@ -108,16 +110,19 @@ public class A2AHttpProcessor
         }
     }
 
-    internal static async Task<IResult> SendSubscribeTaskMessage(TaskManager taskManager, ILogger logger, string id, TaskSendParams sendParams, int? historyLength, string? metadata)
+    internal static async Task<IResult> SendSubscribeTaskMessage(TaskManager taskManager, ILogger logger, string id, MessageSendParams sendParams, int? historyLength, string? metadata)
     {
         using var activity = ActivitySource.StartActivity("SendSubscribeTaskMessage", ActivityKind.Server);
         activity?.AddTag("task.id", id);
 
         try
         {
-            sendParams.Id = id;
-            sendParams.HistoryLength = historyLength;
-            sendParams.Metadata = string.IsNullOrEmpty(metadata) ? null : ParsingHelpers.GetMap(JsonDocument.Parse(metadata).RootElement, (ie, ctx) => ie, new ValidationContext("1.0"));
+            sendParams.Message.TaskId = id;
+            sendParams.Configuration = new MessageSendConfiguration()
+            {
+                HistoryLength = historyLength
+            };
+            sendParams.Metadata = String.IsNullOrWhiteSpace(metadata) ? null : JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(metadata);
 
             var taskEvents = await taskManager.SendSubscribeAsync(sendParams);
 
@@ -130,14 +135,14 @@ public class A2AHttpProcessor
         }
     }
 
-    internal static async Task<IResult> ResubscribeTask(TaskManager taskManager, ILogger logger, string id)
+    internal static IResult ResubscribeTask(TaskManager taskManager, ILogger logger, string id)
     {
         using var activity = ActivitySource.StartActivity("ResubscribeTask", ActivityKind.Server);
         activity?.AddTag("task.id", id);
 
         try
         {
-            var taskEvents = await taskManager.SendSubscribeAsync(new TaskSendParams { Id = id });
+            var taskEvents = taskManager.ResubscribeAsync(new TaskIdParams { Id = id });
 
             return new TaskEventStreamResult(taskEvents);
         }
@@ -214,9 +219,12 @@ public class AgentTaskResult : IResult
     public Task ExecuteAsync(HttpContext httpContext)
     {
         httpContext.Response.ContentType = "application/json";
-        using var writer = new Utf8JsonWriter(httpContext.Response.BodyWriter);
-        agentTask.Write(writer);
-        return writer.FlushAsync();
+
+        return JsonSerializer.SerializeAsync(httpContext.Response.Body, agentTask, new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = true
+        });
     }
 }
 
@@ -235,14 +243,7 @@ public class TaskEventStreamResult : IResult
         httpContext.Response.ContentType = "text/event-stream";
         await foreach (var taskEvent in taskEvents)
         {
-            var stream = new MemoryStream();
-            using var writer = new Utf8JsonWriter(stream);
-            taskEvent.Write(writer);
-            await writer.FlushAsync();
-            writer.Flush();
-            stream.Position = 0;
-            using var reader = new StreamReader(stream);
-            var json = reader.ReadToEnd();
+            var json = JsonSerializer.Serialize(taskEvent);
             await httpContext.Response.BodyWriter.WriteAsync(Encoding.UTF8.GetBytes($"data: {json}\n\n"));
             await httpContext.Response.BodyWriter.FlushAsync();
         }

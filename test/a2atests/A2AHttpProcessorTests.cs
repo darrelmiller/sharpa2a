@@ -75,7 +75,7 @@ public class A2AHttpProcessorTests
         var taskManager = new TaskManager(taskStore: taskStore);
         var logger = NullLogger.Instance;
         var id = "testId";
-        var sendParams = new TaskSendParams();
+        var sendParams = new MessageSendParams();
         var historyLength = 10;
 
         // Act

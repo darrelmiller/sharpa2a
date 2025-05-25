@@ -8,11 +8,11 @@ public class TaskManagerTests
     public async Task CreateTask()
     {
         var taskManager = new TaskManager();
-        var taskSendParams = new TaskSendParams
+        var taskSendParams = new MessageSendParams
         {
-            Id = "testTask",
             Message = new Message
             {
+                TaskId = "testTask",
                 Parts = [
                     new TextPart
                     {
@@ -42,11 +42,11 @@ public class TaskManagerTests
     public async Task CreateAndRetrieveTask()
     {
         var taskManager = new TaskManager();
-        var taskSendParams = new TaskSendParams
+        var taskSendParams = new MessageSendParams
         {
-            Id = "testTask",
             Message = new Message
             {
+                TaskId = "testTask",
                 Parts = [
                     new TextPart
                     {
@@ -70,11 +70,12 @@ public class TaskManagerTests
     public async Task CancelTask()
     {
         var taskManager = new TaskManager();
-        var taskSendParams = new TaskSendParams
+        var taskSendParams = new MessageSendParams
         {
-            Id = "testTask",
+
             Message = new Message
             {
+                TaskId = "testTask",
                 Parts = [
                     new TextPart
                     {
@@ -111,11 +112,11 @@ public class TaskManagerTests
             }
         };
 
-        var taskSendParams = new TaskSendParams
+        var taskSendParams = new MessageSendParams
         {
-            Id = "testTask",
             Message = new Message
             {
+                TaskId = "testTask",
                 Parts = [
                     new TextPart
                     {
@@ -129,11 +130,11 @@ public class TaskManagerTests
         Assert.Equal("testTask", task.Id);
         Assert.Equal(TaskState.Submitted, task.Status.State);
 
-        var updateSendParams = new TaskSendParams
+        var updateSendParams = new MessageSendParams
         {
-            Id = "testTask",
             Message = new Message
             {
+                TaskId = "testTask",
                 Parts = [
                     new TextPart
                     {
@@ -154,11 +155,11 @@ public class TaskManagerTests
     {
         var taskManager = new TaskManager();
 
-        var taskSendParams = new TaskSendParams
+        var taskSendParams = new MessageSendParams
         {
-            Id = "testTask",
             Message = new Message
             {
+                TaskId = "testTask",
                 Parts = [
                     new TextPart
                     {
@@ -193,11 +194,11 @@ public class TaskManagerTests
     {
         var taskManager = new TaskManager();
 
-        var taskSendParams = new TaskSendParams
+        var taskSendParams = new MessageSendParams
         {
-            Id = "testTask",
             Message = new Message
             {
+                TaskId = "testTask",
                 Parts = [
                     new TextPart
                     {
@@ -242,11 +243,11 @@ public class TaskManagerTests
             await taskManager.UpdateStatusAsync(task.Id, TaskState.Working, final: true);
         };
 
-        var taskSendParams = new TaskSendParams
+        var taskSendParams = new MessageSendParams
         {
-            Id = "testTask",
             Message = new Message
             {
+                TaskId = "testTask",
                 Parts = [
                     new TextPart
                     {
@@ -260,7 +261,7 @@ public class TaskManagerTests
         await foreach (var taskEvent in taskEvents)
         {
             Assert.NotNull(taskEvent);
-            Assert.Equal("testTask", taskEvent.Id);
+            Assert.Equal("testTask", taskEvent.TaskId);
             var statusEvent = taskEvent as TaskStatusUpdateEvent;
             Assert.Equal(TaskState.Working, statusEvent.Status.State);
             taskCount++;
@@ -279,7 +280,7 @@ public class TaskManagerTests
             await Task.Delay(1000);
             enumerator.NotifyEvent(new TaskStatusUpdateEvent
             {
-                Id = "testTask",
+                TaskId = "testTask",
                 Status = new AgentTaskStatus
                 {
                     State = TaskState.Working,
@@ -290,7 +291,7 @@ public class TaskManagerTests
             await Task.Delay(1000);
             enumerator.NotifyFinalEvent(new TaskStatusUpdateEvent
             {
-                Id = "testTask",
+                TaskId = "testTask",
                 Status = new AgentTaskStatus
                 {
                     State = TaskState.Completed,

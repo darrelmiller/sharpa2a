@@ -29,7 +29,7 @@ public class HostedClientAgent
     {
         using var activity = ActivitySource.StartActivity("ExecuteAgentTask", ActivityKind.Server);
         activity?.SetTag("task.id", task.Id);
-        activity?.SetTag("task.sessionId", task.SessionId);
+        activity?.SetTag("task.sessionId", task.ContextId);
 
         if (_TaskManager == null)
         {
@@ -41,7 +41,7 @@ public class HostedClientAgent
 
         // Get message from the user to HostedClientAgent
         var userMessage = task.History!.Last().Parts.First().AsTextPart().Text;
-        var echoTask = await echoClient.Send(new TaskSendParams()
+        var echoTask = await echoClient.Send(new MessageSendParams()
         {
             Id = Guid.NewGuid().ToString(),
             Message = new Message()
