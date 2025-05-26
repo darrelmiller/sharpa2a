@@ -12,7 +12,9 @@ public class A2AEvent
 
 }
 
-
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "kind")]
+[JsonDerivedType(typeof(Message), "message")]
+[JsonDerivedType(typeof(AgentTask), "task")]
 public class A2AResponse : A2AEvent
 {
 }

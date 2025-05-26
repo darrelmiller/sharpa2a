@@ -62,7 +62,7 @@ public static class A2AJsonRpcProcessor
                     break;
                 }
                 var a2aResponse = await taskManager.SendMessageAsync(taskSendParams);
-                response = JsonRpcResponse<A2AResponse?>.CreateJsonRpcResponse(requestId, a2aResponse);
+                response = JsonRpcResponse.CreateJsonRpcResponse(requestId, a2aResponse);
                 break;
             case A2AMethods.TaskGet:
                 var taskIdParams = JsonSerializer.Deserialize<TaskQueryParams>(parameters.Value.GetRawText());
@@ -72,7 +72,7 @@ public static class A2AJsonRpcProcessor
                     break;
                 }
                 var getAgentTask = await taskManager.GetTaskAsync(taskIdParams);
-                response = JsonRpcResponse<AgentTask?>.CreateJsonRpcResponse(requestId, getAgentTask);
+                response = JsonRpcResponse.CreateJsonRpcResponse(requestId, getAgentTask);
                 break;
             case A2AMethods.TaskCancel:
                 var taskIdParamsCancel = JsonSerializer.Deserialize<TaskIdParams>(parameters.Value.GetRawText());
@@ -82,7 +82,7 @@ public static class A2AJsonRpcProcessor
                     break;
                 }
                 var cancelledTask = await taskManager.CancelTaskAsync(taskIdParamsCancel);
-                response = JsonRpcResponse<AgentTask?>.CreateJsonRpcResponse(requestId, cancelledTask);
+                response = JsonRpcResponse.CreateJsonRpcResponse(requestId, cancelledTask);
                 break;
             case A2AMethods.TaskPushNotificationConfigSet:
                 var taskPushNotificationConfig = JsonSerializer.Deserialize<TaskPushNotificationConfig>(parameters.Value.GetRawText());
@@ -92,7 +92,7 @@ public static class A2AJsonRpcProcessor
                     break;
                 }
                 var setConfig = await taskManager.SetPushNotificationAsync(taskPushNotificationConfig);
-                response = JsonRpcResponse<TaskPushNotificationConfig?>.CreateJsonRpcResponse(requestId, setConfig);
+                response = JsonRpcResponse.CreateJsonRpcResponse(requestId, setConfig);
                 break;
             case A2AMethods.TaskPushNotificationConfigGet:
                 var taskIdParamsGetConfig = JsonSerializer.Deserialize<TaskIdParams>(parameters.Value.GetRawText());
@@ -102,7 +102,7 @@ public static class A2AJsonRpcProcessor
                     break;
                 }
                 var getConfig = await taskManager.GetPushNotificationAsync(taskIdParamsGetConfig);
-                response = JsonRpcResponse<TaskPushNotificationConfig?>.CreateJsonRpcResponse(requestId, getConfig);
+                response = JsonRpcResponse.CreateJsonRpcResponse(requestId, getConfig);
                 break;
             default:
                 response = JsonRpcErrorResponses.MethodNotFoundResponse(requestId);
@@ -208,12 +208,7 @@ public static class A2AJsonRpcProcessor
             {
                 var sseItem = new A2ASseItem()
                 {
-                    Data = new JsonRpcResponse<A2AEvent>()
-                    {
-                        Id = requestId,
-                        Result = taskEvent,
-                        JsonRpc = "2.0"
-                    }
+                    Data = JsonRpcResponse.CreateJsonRpcResponse(this.requestId,taskEvent)
                 };
                 await sseItem.WriteAsync(httpContext.Response.BodyWriter);
             }

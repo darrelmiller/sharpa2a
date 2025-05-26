@@ -147,10 +147,7 @@ public class MockMessageHandler : HttpMessageHandler
         var response = new HttpResponseMessage(HttpStatusCode.OK)
         {
            RequestMessage = request,
-           Content = new JsonRpcContent(new JsonRpcResponse<AgentTask>()
-           {
-               Id = "dummy-id",
-               Result = new AgentTask()
+           Content = new JsonRpcContent(JsonRpcResponse.CreateJsonRpcResponse<A2AResponse>("asdas",new AgentTask()
                {
                    Id = "dummy-task-id",
                    ContextId = "dummy-context-id",
@@ -159,8 +156,7 @@ public class MockMessageHandler : HttpMessageHandler
                        State = TaskState.Completed,
 
                    }
-               }
-           })
+               }))
         };
         return Task.FromResult(response);
     }

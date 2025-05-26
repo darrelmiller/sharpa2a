@@ -229,12 +229,15 @@ public class TaskManagerTests
     public async Task CreateSendSubscribeTask()
     {
         var taskManager = new TaskManager();
+        taskManager.OnTaskCreated = async (task) =>
+        {
+            await taskManager.UpdateStatusAsync(task.Id, TaskState.Working, final: true);
+        };
 
         var taskSendParams = new MessageSendParams
         {
             Message = new Message
             {
-                TaskId = "testTask",
                 Parts = [
                     new TextPart
                     {

@@ -86,11 +86,8 @@ public class A2AClient : IA2AClient
             throw new InvalidOperationException("Invalid content type.");
         }
 
-        // Deserialize the response content directly
-        //var responseContent = await response.Content.ReadAsStringAsync();
         var responseStream = await response.Content.ReadAsStreamAsync();
-        
-        var responseObject = await JsonSerializer.DeserializeAsync<JsonRpcResponse<OUT>>(responseStream, new JsonSerializerOptions
+        var responseObject = await JsonSerializer.DeserializeAsync<JsonRpcResponse>(responseStream, new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         });
@@ -99,10 +96,13 @@ public class A2AClient : IA2AClient
         {
             throw new InvalidOperationException("Failed to deserialize the response.");
         }
-
-        return responseObject.Result ?? throw new InvalidOperationException("Response does not contain a result.");
+        var resultObject = JsonSerializer.Deserialize<OUT>(responseObject.Result, new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        });
+        return resultObject ?? throw new InvalidOperationException("Response does not contain a result.");
     }
-    
+
     public static JsonElement ToJsonElement<T>(T value)
     {
         // TODO: Reduce memory allocations

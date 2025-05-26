@@ -141,7 +141,7 @@ public class SemanticKernelTravelAgent : IDisposable
     public void Attach(TaskManager taskManager)
     {
         this._taskManager = taskManager;
-        taskManager.OnMessageReceived = ExecuteAgentTask;
+        taskManager.OnTaskCreated = ExecuteAgentTask;
         taskManager.OnTaskUpdated = ExecuteAgentTask;
         taskManager.OnAgentCardQuery = GetAgentCard;
     }

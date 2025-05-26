@@ -221,16 +221,17 @@ public static class A2ACli
         // Create payload for the task
         var payload = new MessageSendParams()
         {
-            Id = taskId,
-            SessionId = sessionId,
-            AcceptedOutputModes = new List<string> { "text" },
-            Message = message
-        };
+            Configuration = new()
+            {
+                AcceptedOutputModes = new List<string> { "text" }
+            },
+                Message = message
+            };
 
         // Add push notification configuration if enabled
         if (usePushNotifications)
         {
-            payload.PushNotification = new PushNotificationConfig
+            payload.Configuration.PushNotification = new PushNotificationConfig
             {
                 Url = $"http://{notificationReceiverHost}:{notificationReceiverPort}/notify",
                 Authentication = new AuthenticationInfo

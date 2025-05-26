@@ -21,6 +21,25 @@ Content-Type: application/json
 }
 
 
+### Send a message to the echo agent that creates a task
+POST {{host}}/echotasks/send
+Content-Type: application/json
+
+{
+        "message": {
+            "messageId": "12345",
+            "role": "user",
+            "parts": [
+                {
+                    "kind": "text",
+                    "text": "Hello, world!"
+                }
+            ]
+        }
+}
+
+
+
 ###
 GET {{host}}/echo/tasks/12345
 

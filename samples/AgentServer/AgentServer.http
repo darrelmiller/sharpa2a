@@ -5,7 +5,7 @@ GET {{host}}/echo/.well-known/agent.json
 
 ## curl -N -X GET http://localhost:5048/echo/.well-known/agent.json
 
-### Send a task to the echo agent
+### Send a message to the echo agent
 POST {{host}}/echo
 Content-Type: application/json
 
@@ -27,10 +27,34 @@ Content-Type: application/json
     }
 }
 
+### Send a message to the echo agent that uses tasks
+POST {{host}}/echotasks
+Content-Type: application/json
+
+{
+    "id": "3",
+    "jsonrpc": "2.0",
+    "method": "message/send",
+    "params": {
+          "message": {
+            "messageId": "12345",
+            "role": "user",
+            "parts": [
+                {
+                    "kind": "text",
+                    "text": "Hello, world!"
+                }
+            ]
+        }
+    }
+}
+
+
+
 ## curl -N -X POST http://localhost:5048/echo -H "Content-Type: application/json" -d '{ "id": "3","jsonrpc": "2.0","method": "task/sendsubscribe","params": {"id": "1234","message": {"role": "user","parts": [{"type": "text","text": "Hello, world!"}]}}}'
 
 ###
-POST {{host}}/echo
+POST {{host}}/echotasks
 Content-Type: application/json
 
 {
@@ -38,11 +62,11 @@ Content-Type: application/json
     "jsonrpc": "2.0",
     "method": "task/get",
     "params": {
-        "id": "12345"
+        "id": "b67f67e1-7cf2-44f4-a487-8a063f486366"
         }
 }
 
-### SendSubscribe a task to the echo agent
+### SendSubscribe the echo agent
 POST {{host}}/echo
 Content-Type: application/json
 
@@ -51,8 +75,30 @@ Content-Type: application/json
     "jsonrpc": "2.0",
     "method": "message/stream",
     "params": {
-        "id": "sendsubscribeTaskId6",
         "message": {
+            "messageId": "messageId2",
+            "role": "user",
+            "parts": [
+                {
+                    "kind": "text",
+                    "text": "Hello, world!"
+                }
+            ]
+        }
+    }
+}
+
+### SendSubscribe the echo agent with tasks
+POST {{host}}/echotasks
+Content-Type: application/json
+
+{
+    "id": "3",
+    "jsonrpc": "2.0",
+    "method": "message/stream",
+    "params": {
+        "message": {
+            "messageId": "messageId2",
             "role": "user",
             "parts": [
                 {
