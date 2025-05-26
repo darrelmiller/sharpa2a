@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 namespace SharpA2A.Core;
 
 
-public abstract class TaskUpdateEvent : A2AResponse
+public abstract class TaskUpdateEvent : A2AEvent
 {
     [JsonPropertyName("taskId")]
     public string TaskId { get; set; } = string.Empty;

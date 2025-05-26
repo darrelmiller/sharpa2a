@@ -50,7 +50,7 @@ public class A2AHttpProcessor
                 return Results.NotFound();
             }
 
-            return new AgentTaskResult(agentTask);
+            return new A2AResponseResult(agentTask);
         }
         catch (Exception ex)
         {
@@ -72,7 +72,7 @@ public class A2AHttpProcessor
                 return Results.NotFound();
             }
 
-            return new AgentTaskResult(agentTask);
+            return new A2AResponseResult(agentTask);
         }
         catch (Exception ex)
         {
@@ -81,33 +81,39 @@ public class A2AHttpProcessor
         }
     }
 
-    internal static async Task<IResult> SendTaskMessage(TaskManager taskManager, ILogger logger, string id, MessageSendParams sendParams, int? historyLength, string? metadata)
+    internal static async Task<IResult> SendTaskMessage(TaskManager taskManager, ILogger logger, string? taskId, MessageSendParams sendParams, int? historyLength, string? metadata)
     {
         using var activity = ActivitySource.StartActivity("SendTaskMessage", ActivityKind.Server);
-        activity?.AddTag("task.id", id);
+        if (taskId != null)
+        {
+            activity?.AddTag("task.id", taskId);
+        }
 
         try
-        {
-            sendParams.Message.TaskId = id;
-            sendParams.Configuration = new MessageSendConfiguration
             {
-                HistoryLength = historyLength
-            };
-            sendParams.Metadata = String.IsNullOrWhiteSpace(metadata) ? null : JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(metadata);
+                if (taskId != null)
+                {
+                    sendParams.Message.TaskId = taskId;
+                }
+                sendParams.Configuration = new MessageSendConfiguration
+                {
+                    HistoryLength = historyLength
+                };
+                sendParams.Metadata = String.IsNullOrWhiteSpace(metadata) ? null : JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(metadata);
 
-            var agentTask = await taskManager.SendAsync(sendParams);
-            if (agentTask == null)
-            {
-                return Results.NotFound();
+                var a2aResponse = await taskManager.SendMessageAsync(sendParams);
+                if (a2aResponse == null)
+                {
+                    return Results.NotFound();
+                }
+
+                return new A2AResponseResult(a2aResponse);
             }
-
-            return new AgentTaskResult(agentTask);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error sending message to task");
-            return Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status500InternalServerError);
-        }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error sending message to task");
+                return Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status500InternalServerError);
+            }
     }
 
     internal static async Task<IResult> SendSubscribeTaskMessage(TaskManager taskManager, ILogger logger, string id, MessageSendParams sendParams, int? historyLength, string? metadata)
@@ -126,7 +132,7 @@ public class A2AHttpProcessor
 
             var taskEvents = await taskManager.SendSubscribeAsync(sendParams);
 
-            return new TaskEventStreamResult(taskEvents);
+            return new A2AEventStreamResult(taskEvents);
         }
         catch (Exception ex)
         {
@@ -144,7 +150,7 @@ public class A2AHttpProcessor
         {
             var taskEvents = taskManager.ResubscribeAsync(new TaskIdParams { Id = id });
 
-            return new TaskEventStreamResult(taskEvents);
+            return new A2AEventStreamResult(taskEvents);
         }
         catch (Exception ex)
         {
@@ -208,19 +214,19 @@ public class A2AHttpProcessor
 }
 
 
-public class AgentTaskResult : IResult
+public class A2AResponseResult : IResult
 {
-    private readonly AgentTask agentTask;
+    private readonly A2AResponse a2aResponse;
 
-    public AgentTaskResult(AgentTask agentTask)
+    public A2AResponseResult(A2AResponse a2aResponse)
     {
-        this.agentTask = agentTask;
+        this.a2aResponse = a2aResponse;
     }
-    public Task ExecuteAsync(HttpContext httpContext)
+    public async Task ExecuteAsync(HttpContext httpContext)
     {
         httpContext.Response.ContentType = "application/json";
 
-        return JsonSerializer.SerializeAsync(httpContext.Response.Body, agentTask, new JsonSerializerOptions
+        await JsonSerializer.SerializeAsync(httpContext.Response.Body, a2aResponse, a2aResponse.GetType(), new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             WriteIndented = true
@@ -229,11 +235,11 @@ public class AgentTaskResult : IResult
 }
 
 
-public class TaskEventStreamResult : IResult
+public class A2AEventStreamResult : IResult
 {
-    private readonly IAsyncEnumerable<TaskUpdateEvent> taskEvents;
+    private readonly IAsyncEnumerable<A2AEvent> taskEvents;
 
-    public TaskEventStreamResult(IAsyncEnumerable<TaskUpdateEvent> taskEvents)
+    public A2AEventStreamResult(IAsyncEnumerable<A2AEvent> taskEvents)
     {
         this.taskEvents = taskEvents;
     }
@@ -243,7 +249,11 @@ public class TaskEventStreamResult : IResult
         httpContext.Response.ContentType = "text/event-stream";
         await foreach (var taskEvent in taskEvents)
         {
-            var json = JsonSerializer.Serialize(taskEvent);
+            var json = JsonSerializer.Serialize(taskEvent, taskEvent.GetType(), new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                WriteIndented = true
+            });
             await httpContext.Response.BodyWriter.WriteAsync(Encoding.UTF8.GetBytes($"data: {json}\n\n"));
             await httpContext.Response.BodyWriter.FlushAsync();
         }

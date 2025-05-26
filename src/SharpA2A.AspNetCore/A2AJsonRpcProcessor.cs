@@ -54,14 +54,15 @@ public static class A2AJsonRpcProcessor
         switch (method)
         {
             case A2AMethods.MessageSend:
+                var parameterString = parameters.Value.GetRawText();
                 var taskSendParams = JsonSerializer.Deserialize<MessageSendParams>(parameters.Value.GetRawText()); //TODO stop the double parsing
                 if (taskSendParams == null)
                 {
                     response = JsonRpcErrorResponses.InvalidParamsResponse(requestId);
                     break;
                 }
-                var agentTask = await taskManager.SendAsync(taskSendParams);
-                response = JsonRpcResponse<AgentTask?>.CreateJsonRpcResponse(requestId, agentTask);
+                var a2aResponse = await taskManager.SendMessageAsync(taskSendParams);
+                response = JsonRpcResponse<A2AResponse?>.CreateJsonRpcResponse(requestId, a2aResponse);
                 break;
             case A2AMethods.TaskGet:
                 var taskIdParams = JsonSerializer.Deserialize<TaskQueryParams>(parameters.Value.GetRawText());
@@ -189,10 +190,10 @@ public static class A2AJsonRpcProcessor
     }
 
     public class JsonRpcStreamedResult : IResult {
-        private readonly IAsyncEnumerable<TaskUpdateEvent> _events;
+        private readonly IAsyncEnumerable<A2AEvent> _events;
         private readonly string requestId;
 
-        public JsonRpcStreamedResult(IAsyncEnumerable<TaskUpdateEvent> events, string requestId)
+        public JsonRpcStreamedResult(IAsyncEnumerable<A2AEvent> events, string requestId)
         {
             _events = events;
             this.requestId = requestId;
@@ -207,7 +208,7 @@ public static class A2AJsonRpcProcessor
             {
                 var sseItem = new A2ASseItem()
                 {
-                    Data = new JsonRpcResponse<A2AResponse>()
+                    Data = new JsonRpcResponse<A2AEvent>()
                     {
                         Id = requestId,
                         Result = taskEvent,

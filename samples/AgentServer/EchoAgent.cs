@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using SharpA2A.Core;
 
 public class EchoAgent
@@ -7,36 +8,24 @@ public class EchoAgent
     public void Attach(TaskManager taskManager)
     {
         _TaskManager = taskManager;
-        taskManager.OnTaskCreated = ExecuteAgentTask;
-        taskManager.OnTaskUpdated = ExecuteAgentTask;
+        taskManager.OnMessageReceived = ProcessMessage;
         taskManager.OnAgentCardQuery = GetAgentCard;
     }
 
-    public async Task ExecuteAgentTask(AgentTask task)
+    public Task<Message> ProcessMessage(MessageSendParams messageSendParams)
     {
-
-        if (_TaskManager == null)
-        {
-            throw new Exception("TaskManager is not attached.");
-        }
-
-        // Set Status to working
-        await _TaskManager.UpdateStatusAsync(task.Id, TaskState.Working);
-
         // Process the message
-        var message = task.History?.Last().Parts.First().AsTextPart().Text;
+        var messageText = messageSendParams.Message.Parts.OfType<TextPart>().First().Text;
 
         // Create and return an artifact
-        var artifact = new Artifact()
+        var message = new Message()
         {
+            MessageId = Guid.NewGuid().ToString(),
             Parts = [new TextPart() {
-                Text = $"Echo: {message}"
+                Text = $"Echo: {messageText}"
             }]
         };
-        await _TaskManager.ReturnArtifactAsync(task.Id, artifact);
-
-        // Complete the task
-        await _TaskManager.UpdateStatusAsync(task.Id, TaskState.Completed, final: true);
+        return Task.FromResult(message);
     }
 
     public AgentCard GetAgentCard(string agentUrl)

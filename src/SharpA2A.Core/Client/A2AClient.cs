@@ -26,7 +26,7 @@ public class A2AClient : IA2AClient
         return await RpcRequest<TaskIdParams, AgentTask>(taskIdParams, A2AMethods.TaskCancel);
     }
 
-    public async IAsyncEnumerable<SseItem<TaskUpdateEvent>> SendSubscribe(MessageSendParams taskSendParams)
+    public async IAsyncEnumerable<SseItem<A2AEvent>> SendSubscribe(MessageSendParams taskSendParams)
     {
         var request = new JsonRpcRequest()
         {
@@ -40,10 +40,10 @@ public class A2AClient : IA2AClient
         });
         response.EnsureSuccessStatusCode();
         var stream = await response.Content.ReadAsStreamAsync();
-        var sseParser = SseParser.Create<TaskUpdateEvent>(stream, (eventType, data) =>
+        var sseParser = SseParser.Create<A2AEvent>(stream, (eventType, data) =>
         {
             var reader = new Utf8JsonReader(data);
-            var taskEvent = JsonSerializer.Deserialize<TaskUpdateEvent>(ref reader, new JsonSerializerOptions
+            var taskEvent = JsonSerializer.Deserialize<A2AEvent>(ref reader, new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             });

@@ -39,7 +39,7 @@ public class A2AHttpProcessorTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.IsType<AgentTaskResult>(result);
+        Assert.IsType<A2AResponseResult>(result);
     }
 
     [Fact]
@@ -60,7 +60,7 @@ public class A2AHttpProcessorTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.IsType<AgentTaskResult>(result);
+        Assert.IsType<A2AResponseResult>(result);
     }
 
     [Fact]
@@ -83,7 +83,7 @@ public class A2AHttpProcessorTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.IsType<AgentTaskResult>(result);
+        Assert.IsType<A2AResponseResult>(result);
     }
 
 }

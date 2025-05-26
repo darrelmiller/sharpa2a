@@ -153,12 +153,12 @@ public class ParsingTests
                 },
             }
         };
-        var jsonRpcResponse = JsonRpcResponse<A2AResponse>.CreateJsonRpcResponse("test-id", taskArtifactUpdateEvent);
+        var jsonRpcResponse = JsonRpcResponse<A2AEvent>.CreateJsonRpcResponse("test-id", taskArtifactUpdateEvent);
         var json = JsonSerializer.Serialize(jsonRpcResponse);
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(json));
         // Deserialize using the base class
         // This is important to ensure polymorphic deserialization works correctly
-        var deserializedResponse = JsonSerializer.Deserialize<JsonRpcResponse<A2AResponse>>(stream);
+        var deserializedResponse = JsonSerializer.Deserialize<JsonRpcResponse<A2AEvent>>(stream);
 
         // Act
         var result = deserializedResponse;
@@ -170,4 +170,6 @@ public class ParsingTests
         Assert.Equal(taskArtifactUpdateEvent.ContextId, resultTaskArtifactUpdateEvent.ContextId);
         Assert.Equal(taskArtifactUpdateEvent.Artifact.Parts[0].AsTextPart().Text, resultTaskArtifactUpdateEvent.Artifact.Parts[0].AsTextPart().Text);
     }
+
+
 }

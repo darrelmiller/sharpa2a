@@ -4,7 +4,7 @@ using System.Diagnostics;
 
 public class HostedClientAgent
 {
-    private TaskManager? _TaskManager;
+    private ITaskManager? _TaskManager;
     private A2AClient echoClient;
     public static readonly ActivitySource ActivitySource = new ActivitySource("A2A.HostedClientAgent", "1.0.0");
 
@@ -43,7 +43,6 @@ public class HostedClientAgent
         var userMessage = task.History!.Last().Parts.First().AsTextPart().Text;
         var echoTask = await echoClient.Send(new MessageSendParams()
         {
-            Id = Guid.NewGuid().ToString(),
             Message = new Message()
             {
                 Parts = [new TextPart() {
