@@ -142,7 +142,7 @@ public static class A2AJsonRpcProcessor
                         return new JsonRpcResponseResult(JsonRpcErrorResponses.InvalidParamsResponse(requestId));
                     }
 
-                    var sendEvents = await taskManager.SendSubscribeAsync(taskSendParams);
+                    var sendEvents = await taskManager.SendMessageStreamAsync(taskSendParams);
 
                     return new JsonRpcStreamedResult(sendEvents, requestId);
 

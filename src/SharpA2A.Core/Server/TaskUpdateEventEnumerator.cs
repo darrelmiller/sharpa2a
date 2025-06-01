@@ -8,12 +8,8 @@ public class TaskUpdateEventEnumerator : IAsyncEnumerable<A2AEvent>
     private bool isFinal = false;
     private ConcurrentQueue<A2AEvent> _UpdateEvents = new ConcurrentQueue<A2AEvent>();
     private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(0);
-    private readonly Task processingTask;
+    public Task? ProcessingTask { get; set; } // Store the processing task so it doesn't get garbage collected
 
-    public TaskUpdateEventEnumerator(Task processingTask)
-    {
-        this.processingTask = processingTask;  // Store the processing task so it doesn't get garbage collected
-    }
     public void NotifyEvent(A2AEvent taskUpdateEvent)
     {
         // Enqueue the event to the queue

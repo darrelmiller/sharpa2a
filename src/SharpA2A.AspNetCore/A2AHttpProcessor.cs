@@ -130,7 +130,7 @@ public class A2AHttpProcessor
             };
             sendParams.Metadata = String.IsNullOrWhiteSpace(metadata) ? null : JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(metadata);
 
-            var taskEvents = await taskManager.SendSubscribeAsync(sendParams);
+            var taskEvents = await taskManager.SendMessageStreamAsync(sendParams);
 
             return new A2AEventStreamResult(taskEvents);
         }

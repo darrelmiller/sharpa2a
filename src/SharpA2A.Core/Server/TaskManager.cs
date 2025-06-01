@@ -161,18 +161,18 @@ public class TaskManager : ITaskManager
         return task;
     }
 
-    public async Task<IAsyncEnumerable<A2AEvent>> SendSubscribeAsync(MessageSendParams messageSendParams)
+    public async Task<IAsyncEnumerable<A2AEvent>> SendMessageStreamAsync(MessageSendParams messageSendParams)
     {
 
         using var activity = ActivitySource.StartActivity("SendSubscribe", ActivityKind.Server);
-        AgentTask? task = null;
+        AgentTask? agentTask = null;
 
         // Is this message to be associated to an existing Task
         if (messageSendParams.Message.TaskId != null)
         {
             activity?.SetTag("task.id", messageSendParams.Message.TaskId);
-            task = await _TaskStore.GetTaskAsync(messageSendParams.Message.TaskId);
-            if (task == null)
+            agentTask = await _TaskStore.GetTaskAsync(messageSendParams.Message.TaskId);
+            if (agentTask == null)
             {
                 activity?.SetTag("task.found", false);
                 throw new ArgumentException("Task not found or invalid TaskIdParams.");
@@ -185,7 +185,8 @@ public class TaskManager : ITaskManager
         }
 
         Task processingTask;
-        if (task == null)
+        TaskUpdateEventEnumerator enumerator;
+        if (agentTask == null)
         {
             // If the task is configured to process simple messages without tasks, pass the message directly to the agent
             if (OnMessageReceived != null)
@@ -202,17 +203,20 @@ public class TaskManager : ITaskManager
             else
             {
                 // If no task is found and no OnMessageReceived handler is set, create a new task
-                task = await CreateTaskAsync(messageSendParams.Message.ContextId);
-                if (task.History == null)
+                agentTask = await CreateTaskAsync(messageSendParams.Message.ContextId);
+                if (agentTask.History == null)
                 {
-                    task.History = new List<Message>();
+                    agentTask.History = new List<Message>();
                 }
-                task.History.Add(messageSendParams.Message);
-                processingTask = Task.Run(async () =>
+                agentTask.History.Add(messageSendParams.Message);
+                enumerator = new TaskUpdateEventEnumerator();
+                _TaskUpdateEventEnumerators[agentTask.Id] = enumerator;
+                enumerator.NotifyEvent(agentTask);
+                enumerator.ProcessingTask = Task.Run(async () =>
                 {
                     using (var createActivity = ActivitySource.StartActivity("OnTaskCreated", ActivityKind.Server))
                     {
-                        await OnTaskCreated(task);
+                        await OnTaskCreated(agentTask);
                     }
                 });
             }
@@ -220,23 +224,29 @@ public class TaskManager : ITaskManager
         else
         {
             // If the task is found, update its status and history
-            if (task.History == null)
+            if (agentTask.History == null)
             {
-                task.History = new List<Message>();
+                agentTask.History = new List<Message>();
             }
-            task.History.Add(messageSendParams.Message);
-            await _TaskStore.SetTaskAsync(task);
-            processingTask = Task.Run(async () =>
+            agentTask.History.Add(messageSendParams.Message);
+            await _TaskStore.SetTaskAsync(agentTask);
+            enumerator = new TaskUpdateEventEnumerator();
+            _TaskUpdateEventEnumerators[agentTask.Id] = enumerator;
+            enumerator.ProcessingTask = Task.Run(async () =>
             {
                 using (var createActivity = ActivitySource.StartActivity("OnTaskUpdated", ActivityKind.Server))
                 {
-                    await OnTaskUpdated(task);
+                    await OnTaskUpdated(agentTask);
                 }
             });
         }
-        var enumerator = new TaskUpdateEventEnumerator(processingTask);
-        _TaskUpdateEventEnumerators[task.Id] = enumerator;
-        return enumerator;
+
+
+        // // Notify the enumerator that a task has been created or updated
+        // activity?.SetTag("event.type", "task");
+        // enumerator.NotifyEvent(task);
+
+        return enumerator;  //TODO: Clean up enumerators after use
 
     }
 

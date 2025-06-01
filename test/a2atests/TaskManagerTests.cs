@@ -246,24 +246,56 @@ public class TaskManagerTests
                 ]
             },
         };
-        var taskEvents = await taskManager.SendSubscribeAsync(taskSendParams);
+        var taskEvents = await taskManager.SendMessageStreamAsync(taskSendParams);
         var taskCount = 0;
         await foreach (var taskEvent in taskEvents)
         {
-            Assert.NotNull(taskEvent);
-            //Assert.Equal("testTask", taskEvent.TaskId);
-            var statusEvent = taskEvent as TaskStatusUpdateEvent;
-            Assert.Equal(TaskState.Working, statusEvent.Status.State);
             taskCount++;
         }
-        Assert.Equal(1, taskCount);
+        Assert.Equal(2, taskCount);
 
+    }
+
+    [Fact]
+    public async Task EnsureTaskIsFirstReturnedEventFromMessageStream()
+    {
+        var taskManager = new TaskManager();
+        taskManager.OnTaskCreated = async (task) =>
+        {
+            await taskManager.UpdateStatusAsync(task.Id, TaskState.Working, final: true);
+        };
+
+        var taskSendParams = new MessageSendParams
+        {
+            Message = new Message
+            {
+                Parts = [
+                    new TextPart
+                    {
+                        Text = "Hello, World!"
+                    }
+                ]
+            },
+        };
+        var taskEvents = await taskManager.SendMessageStreamAsync(taskSendParams);
+
+        var isFirstEvent = true;
+        await foreach (var taskEvent in taskEvents)
+        {
+            if(isFirstEvent)
+            {
+                Assert.NotNull(taskEvent);
+                Assert.IsType<AgentTask>(taskEvent);
+                isFirstEvent = false;
+            }
+
+        }
     }
 
     [Fact]
     public async Task VerifyTaskEventEnumerator()
     {
-        var enumerator = new TaskUpdateEventEnumerator(null);
+        var enumerator = new TaskUpdateEventEnumerator();
 
         var task = Task.Run(async () =>
         {
