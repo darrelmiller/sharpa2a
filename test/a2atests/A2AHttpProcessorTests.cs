@@ -39,7 +39,7 @@ public class A2AHttpProcessorTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.IsType<AgentTaskResult>(result);
+        Assert.IsType<A2AResponseResult>(result);
     }
 
     [Fact]
@@ -60,7 +60,7 @@ public class A2AHttpProcessorTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.IsType<AgentTaskResult>(result);
+        Assert.IsType<A2AResponseResult>(result);
     }
 
     [Fact]
@@ -75,7 +75,7 @@ public class A2AHttpProcessorTests
         var taskManager = new TaskManager(taskStore: taskStore);
         var logger = NullLogger.Instance;
         var id = "testId";
-        var sendParams = new TaskSendParams();
+        var sendParams = new MessageSendParams();
         var historyLength = 10;
 
         // Act
@@ -83,7 +83,7 @@ public class A2AHttpProcessorTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.IsType<AgentTaskResult>(result);
+        Assert.IsType<A2AResponseResult>(result);
     }
 
 }

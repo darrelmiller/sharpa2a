@@ -3,21 +3,41 @@
 ### Query agent card for the echo agent
 GET {{host}}/echo/card
 
-### Send a task to the echo agent
-POST {{host}}/echo/tasks/12345/send
+### Send a message to the echo agent
+POST {{host}}/echo/send
 Content-Type: application/json
 
 {
         "message": {
+            "messageId": "12345",
             "role": "user",
             "parts": [
                 {
-                    "type": "text",
+                    "kind": "text",
                     "text": "Hello, world!"
                 }
             ]
         }
 }
+
+
+### Send a message to the echo agent that creates a task
+POST {{host}}/echotasks/send
+Content-Type: application/json
+
+{
+        "message": {
+            "messageId": "12345",
+            "role": "user",
+            "parts": [
+                {
+                    "kind": "text",
+                    "text": "Hello, world!"
+                }
+            ]
+        }
+}
+
 
 
 ###

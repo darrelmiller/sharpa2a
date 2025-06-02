@@ -1,4 +1,3 @@
-using DomFactory;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -7,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using SharpA2A.Core;
 using System.Diagnostics;
-using System.Text.Json;
+
 
 namespace SharpA2A.AspNetCore;
 
@@ -60,6 +59,8 @@ public static class A2ARouteBuilderExtensions
         // /card endpoint - Agent discovery
         routeGroup.MapGet("/card", async context => await A2AHttpProcessor.GetAgentCard(taskManager, logger, $"{context.Request.Scheme}://{context.Request.Host}{path}"));
 
+
+
         // /tasks/{id} endpoint
         routeGroup.MapGet("/tasks/{id}", (string id, [FromQuery] int? historyLength = 0, [FromQuery] string? metadata = null) =>
                                             A2AHttpProcessor.GetTask(taskManager, logger, id, historyLength, metadata));
@@ -67,12 +68,16 @@ public static class A2ARouteBuilderExtensions
         // /tasks/{id}/cancel endpoint
         routeGroup.MapPost("/tasks/{id}/cancel", (string id) => A2AHttpProcessor.CancelTask(taskManager, logger, id));
 
+        // /send endpoint
+        routeGroup.MapPost("/send", ([FromBody] MessageSendParams sendParams, int? historyLength, string? metadata) =>
+                                                                    A2AHttpProcessor.SendTaskMessage(taskManager, logger, null, sendParams, historyLength, metadata));
+
         // /tasks/{id}/send endpoint
-        routeGroup.MapPost("/tasks/{id}/send", (string id, [FromBody] TaskSendParams sendParams, int? historyLength, string? metadata) =>
+        routeGroup.MapPost("/tasks/{id}/send", (string id, [FromBody] MessageSendParams sendParams, int? historyLength, string? metadata) =>
                                                                     A2AHttpProcessor.SendTaskMessage(taskManager, logger, id, sendParams, historyLength, metadata));
 
         // /tasks/{id}/sendSubscribe endpoint
-        routeGroup.MapPost("/tasks/{id}/sendSubscribe", (string id, [FromBody] TaskSendParams sendParams, int? historyLength, string? metadata) =>
+        routeGroup.MapPost("/tasks/{id}/sendSubscribe", (string id, [FromBody] MessageSendParams sendParams, int? historyLength, string? metadata) =>
                                                                     A2AHttpProcessor.SendSubscribeTaskMessage(taskManager, logger, id, sendParams, historyLength, metadata));
 
         // /tasks/{id}/resubscribe endpoint

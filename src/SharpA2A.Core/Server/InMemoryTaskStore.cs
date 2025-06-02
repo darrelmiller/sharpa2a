@@ -8,6 +8,11 @@ public class InMemoryTaskStore : ITaskStore
 
     public Task<AgentTask?> GetTaskAsync(string taskId)
     {
+        if (string.IsNullOrEmpty(taskId))
+        {
+            return Task.FromResult<AgentTask?>(null);
+        }
+
         if (_TaskCache.TryGetValue(taskId, out var task))
         {
             return Task.FromResult<AgentTask?>(task);

@@ -44,15 +44,13 @@ public class ClientTests : IClassFixture<JsonSchemaFixture> {
         var client = new A2AClient(new HttpClient(mockHandler){
             BaseAddress = new Uri("http://example.org")
         });
-        var taskSendParams = new TaskSendParams {
-            Id = "test-task",
+        var taskSendParams = new MessageSendParams {
             Message = new Message()
             {
                 Parts =
                 [
                     new TextPart()
                     {
-                        Type =  "text",
                         Text = "Hello, World!",
                     }
                 ],
@@ -149,11 +147,16 @@ public class MockMessageHandler : HttpMessageHandler
         var response = new HttpResponseMessage(HttpStatusCode.OK)
         {
            RequestMessage = request,
-           Content = new JsonRpcContent(new JsonRpcResponse()
-           {
-               Id = "dummy-id",
-               Result = new JsonRpcResult(JsonDocument.Parse("{}").RootElement)
-           })
+           Content = new JsonRpcContent(JsonRpcResponse.CreateJsonRpcResponse<A2AResponse>("asdas",new AgentTask()
+               {
+                   Id = "dummy-task-id",
+                   ContextId = "dummy-context-id",
+                   Status = new AgentTaskStatus()
+                   {
+                       State = TaskState.Completed,
+
+                   }
+               }))
         };
         return Task.FromResult(response);
     }

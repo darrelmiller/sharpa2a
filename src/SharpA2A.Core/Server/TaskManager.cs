@@ -7,10 +7,12 @@ public class TaskManager : ITaskManager
 {
     // OpenTelemetry ActivitySource
     public static readonly ActivitySource ActivitySource = new ActivitySource("A2A.TaskManager", "1.0.0");
-    private static readonly TextMapPropagator Propagator = Propagators.DefaultTextMapPropagator;
 
     private HttpClient _CallbackHttpClient;
     private ITaskStore _TaskStore;
+
+
+    public Func<MessageSendParams, Task<Message>>? OnMessageReceived { get; set; } = null;
     /// <summary>
     /// Agent handler for task creation.
     /// </summary>
@@ -34,6 +36,26 @@ public class TaskManager : ITaskManager
     {
         _CallbackHttpClient = callbackHttpClient ?? new HttpClient();
         _TaskStore = taskStore ?? new InMemoryTaskStore();
+    }
+
+    public async Task<AgentTask> CreateTaskAsync(string? contextId = null)
+    {
+        using var activity = ActivitySource.StartActivity("CreateTask", ActivityKind.Server);
+        activity?.SetTag("context.id", contextId);
+
+        // Create a new task with a unique ID and context ID
+        var task = new AgentTask
+        {
+            Id = Guid.NewGuid().ToString(),
+            ContextId = contextId ?? Guid.NewGuid().ToString(),
+            Status = new AgentTaskStatus
+            {
+                State = TaskState.Submitted,
+                Timestamp = DateTime.UtcNow
+            }
+        };
+        await _TaskStore.SetTaskAsync(task);
+        return task;
     }
 
     public async Task<AgentTask?> CancelTaskAsync(TaskIdParams? taskIdParams)
@@ -74,47 +96,68 @@ public class TaskManager : ITaskManager
         activity?.SetTag("task.found", task != null);
         return task;
     }
-    public async Task<AgentTask?> SendAsync(TaskSendParams taskSendParams)
+    public async Task<A2AResponse?> SendMessageAsync(MessageSendParams messageSendParams)
     {
-        if (taskSendParams == null)
+
+        using var activity = ActivitySource.StartActivity("SendMessage", ActivityKind.Server);
+
+        AgentTask? task = null;
+        // Is this message to be associated to an existing Task
+        if (messageSendParams.Message.TaskId != null)
         {
-            throw new ArgumentNullException(nameof(taskSendParams), "TaskSendParams cannot be null.");
+            activity?.SetTag("task.id", messageSendParams.Message.TaskId);
+            task = await _TaskStore.GetTaskAsync(messageSendParams.Message.TaskId);
+            if (task == null)
+            {
+                activity?.SetTag("task.found", false);
+                throw new ArgumentException("Task not found or invalid TaskIdParams.");
+            }
         }
 
-        using var activity = ActivitySource.StartActivity("SendTask", ActivityKind.Server);
-        activity?.SetTag("task.id", taskSendParams.Id);
-        activity?.SetTag("task.sessionId", taskSendParams.SessionId);
-
-        var task = await _TaskStore.GetTaskAsync(taskSendParams.Id);
+        if (messageSendParams.Message.ContextId != null)
+        {
+            activity?.SetTag("task.contextId", messageSendParams.Message.ContextId);
+        }
 
         if (task == null)
         {
-            task = new AgentTask
+            // If the task is configured to process simple messages without tasks, pass the message directly to the agent
+            if (OnMessageReceived != null)
             {
-                Id = taskSendParams.Id,
-                SessionId = taskSendParams.SessionId,
-                History = [taskSendParams.Message],
-                Status = new AgentTaskStatus()
+                using (var createActivity = ActivitySource.StartActivity("OnMessageReceived", ActivityKind.Server))
                 {
-                    State = TaskState.Submitted,
-                    Timestamp = DateTime.UtcNow
-                },
-                Metadata = taskSendParams.Metadata
-            };
-            await _TaskStore.SetTaskAsync(task);
-            using (var createActivity = ActivitySource.StartActivity("OnTaskCreated", ActivityKind.Server))
-            {
-                await OnTaskCreated(task);
+                    return await OnMessageReceived(messageSendParams);
+                }
             }
-
+            else
+            {
+                // If no task is found and no OnMessageReceived handler is set, create a new task
+                task = await CreateTaskAsync(messageSendParams.Message.ContextId);
+                if (task.History == null)
+                {
+                    task.History = new List<Message>();
+                }
+                task.History.Add(messageSendParams.Message);
+                using (var createActivity = ActivitySource.StartActivity("OnMessageReceived", ActivityKind.Server))
+                {
+                    await OnTaskCreated(task);
+                }
+            }
         }
         else
         {
+            // Fail if Task is in terminal stateS
+            if (task.Status.State == TaskState.Completed || task.Status.State == TaskState.Canceled || task.Status.State == TaskState.Failed || task.Status.State == TaskState.Rejected )
+            {
+                activity?.SetTag("task.terminalState", true);
+                throw new InvalidOperationException("Cannot send message to a task in terminal state.");
+            }
+            // If the task is found, update its status and history
             if (task.History == null)
             {
                 task.History = new List<Message>();
             }
-            task.History.Add(taskSendParams.Message);
+            task.History.Add(messageSendParams.Message);
             await _TaskStore.SetTaskAsync(task);
             using (var createActivity = ActivitySource.StartActivity("OnTaskUpdated", ActivityKind.Server))
             {
@@ -123,52 +166,78 @@ public class TaskManager : ITaskManager
         }
         return task;
     }
-    public async Task<IAsyncEnumerable<TaskUpdateEvent>> SendSubscribeAsync(TaskSendParams taskSendParams)
+
+    public async Task<IAsyncEnumerable<A2AEvent>> SendMessageStreamAsync(MessageSendParams messageSendParams)
     {
-        if (taskSendParams == null)
-        {
-            throw new ArgumentNullException(nameof(taskSendParams), "TaskSendParams cannot be null.");
-        }
 
         using var activity = ActivitySource.StartActivity("SendSubscribe", ActivityKind.Server);
-        activity?.SetTag("task.id", taskSendParams.Id);
-        activity?.SetTag("task.sessionId", taskSendParams.SessionId);
+        AgentTask? agentTask = null;
 
-        Task processingTask;
-        var agentTask = await _TaskStore.GetTaskAsync(taskSendParams.Id);
+        // Is this message to be associated to an existing Task
+        if (messageSendParams.Message.TaskId != null)
+        {
+            activity?.SetTag("task.id", messageSendParams.Message.TaskId);
+            agentTask = await _TaskStore.GetTaskAsync(messageSendParams.Message.TaskId);
+            if (agentTask == null)
+            {
+                activity?.SetTag("task.found", false);
+                throw new ArgumentException("Task not found or invalid TaskIdParams.");
+            }
+        }
+
+        if (messageSendParams.Message.ContextId != null)
+        {
+            activity?.SetTag("task.contextId", messageSendParams.Message.ContextId);
+        }
+
+        TaskUpdateEventEnumerator enumerator;
         if (agentTask == null)
         {
-            agentTask = new AgentTask
+            // If the task is configured to process simple messages without tasks, pass the message directly to the agent
+            if (OnMessageReceived != null)
             {
-                Id = taskSendParams.Id,
-                SessionId = taskSendParams.SessionId,
-                History = [taskSendParams.Message],
-                Status = new AgentTaskStatus()
-                {
-                    State = TaskState.Submitted,
-                    Timestamp = DateTime.UtcNow
-                },
-                Metadata = taskSendParams.Metadata
-            };
-            await _TaskStore.SetTaskAsync(agentTask);
-            processingTask = Task.Run(async () =>
-            {
-                using (var createActivity = ActivitySource.StartActivity("OnTaskUpdated", ActivityKind.Server))
-                {
-                    await OnTaskCreated(agentTask);
-                }
-            });
+                var message = await OnMessageReceived(messageSendParams);
+                return YieldSingleEvent(message);
 
+                static async IAsyncEnumerable<A2AEvent> YieldSingleEvent(A2AEvent evt)
+                {
+                    yield return evt;
+                    await Task.CompletedTask;
+                }
+            }
+            else
+            {
+                // If no task is found and no OnMessageReceived handler is set, create a new task
+                agentTask = await CreateTaskAsync(messageSendParams.Message.ContextId);
+                if (agentTask.History == null)
+                {
+                    agentTask.History = new List<Message>();
+                }
+                agentTask.History.Add(messageSendParams.Message);
+                enumerator = new TaskUpdateEventEnumerator();
+                _TaskUpdateEventEnumerators[agentTask.Id] = enumerator;
+                enumerator.NotifyEvent(agentTask);
+                enumerator.ProcessingTask = Task.Run(async () =>
+                {
+                    using (var createActivity = ActivitySource.StartActivity("OnTaskCreated", ActivityKind.Server))
+                    {
+                        await OnTaskCreated(agentTask);
+                    }
+                });
+            }
         }
         else
         {
+            // If the task is found, update its status and history
             if (agentTask.History == null)
             {
                 agentTask.History = new List<Message>();
             }
-            agentTask.History.Add(taskSendParams.Message);
+            agentTask.History.Add(messageSendParams.Message);
             await _TaskStore.SetTaskAsync(agentTask);
-            processingTask = Task.Run(async () =>
+            enumerator = new TaskUpdateEventEnumerator();
+            _TaskUpdateEventEnumerators[agentTask.Id] = enumerator;
+            enumerator.ProcessingTask = Task.Run(async () =>
             {
                 using (var createActivity = ActivitySource.StartActivity("OnTaskUpdated", ActivityKind.Server))
                 {
@@ -177,9 +246,28 @@ public class TaskManager : ITaskManager
             });
         }
 
-        var enumerator = new TaskUpdateEventEnumerator(processingTask);
-        _TaskUpdateEventEnumerators[taskSendParams.Id] = enumerator;
-        return enumerator;
+        return enumerator;  //TODO: Clean up enumerators after use
+
+    }
+
+    public IAsyncEnumerable<A2AEvent> ResubscribeAsync(TaskIdParams? taskIdParams)
+    {
+        if (taskIdParams == null)
+        {
+            throw new ArgumentNullException(nameof(taskIdParams), "TaskIdParams cannot be null.");
+        }
+
+        using var activity = ActivitySource.StartActivity("Resubscribe", ActivityKind.Server);
+        activity?.SetTag("task.id", taskIdParams.Id);
+
+        if (_TaskUpdateEventEnumerators.TryGetValue(taskIdParams.Id, out var enumerator))
+        {
+            return enumerator;
+        }
+        else
+        {
+            throw new ArgumentException("Task not found or invalid TaskIdParams.");
+        }
     }
 
     public async Task<TaskPushNotificationConfig?> SetPushNotificationAsync(TaskPushNotificationConfig? pushNotificationConfig)
@@ -235,7 +323,7 @@ public class TaskManager : ITaskManager
             {
                 var taskUpdateEvent = new TaskStatusUpdateEvent
                 {
-                    Id = taskId,
+                    TaskId = taskId,
                     Status = agentStatus,
                     Final = final
                 };
@@ -268,11 +356,6 @@ public class TaskManager : ITaskManager
     /// <exception cref="ArgumentException"></exception>
     public async Task ReturnArtifactAsync(string taskId, Artifact artifact)
     {
-        if (artifact == null)
-        {
-            throw new ArgumentNullException(nameof(artifact), "Artifact cannot be null.");
-        }
-
         using var activity = ActivitySource.StartActivity("ReturnArtifact", ActivityKind.Server);
         activity?.SetTag("task.id", taskId);
 
@@ -296,7 +379,7 @@ public class TaskManager : ITaskManager
                 {
                     var taskUpdateEvent = new TaskArtifactUpdateEvent
                     {
-                        Id = task.Id,
+                        TaskId = task.Id,
                         Artifact = artifact
                     };
                     activity?.SetTag("event.type", "artifact");
