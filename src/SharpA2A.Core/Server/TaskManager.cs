@@ -146,6 +146,12 @@ public class TaskManager : ITaskManager
         }
         else
         {
+            // Fail if Task is in terminal stateS
+            if (task.Status.State == TaskState.Completed || task.Status.State == TaskState.Canceled || task.Status.State == TaskState.Failed || task.Status.State == TaskState.Rejected )
+            {
+                activity?.SetTag("task.terminalState", true);
+                throw new InvalidOperationException("Cannot send message to a task in terminal state.");
+            }
             // If the task is found, update its status and history
             if (task.History == null)
             {
@@ -184,7 +190,6 @@ public class TaskManager : ITaskManager
             activity?.SetTag("task.contextId", messageSendParams.Message.ContextId);
         }
 
-        Task processingTask;
         TaskUpdateEventEnumerator enumerator;
         if (agentTask == null)
         {
@@ -240,11 +245,6 @@ public class TaskManager : ITaskManager
                 }
             });
         }
-
-
-        // // Notify the enumerator that a task has been created or updated
-        // activity?.SetTag("event.type", "task");
-        // enumerator.NotifyEvent(task);
 
         return enumerator;  //TODO: Clean up enumerators after use
 

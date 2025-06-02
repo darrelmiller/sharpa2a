@@ -41,18 +41,20 @@ public class HostedClientAgent
 
         // Get message from the user to HostedClientAgent
         var userMessage = task.History!.Last().Parts.First().AsTextPart().Text;
-        var echoTask = await echoClient.Send(new MessageSendParams()
+        var echoTask = await echoClient.Send(new MessageSendParams() 
         {
             Message = new Message()
             {
+                Role = MessageRole.User,
+                ContextId = task.ContextId,
                 Parts = [new TextPart() {
                     Text = $"HostedClientAgent received {userMessage}"
                 }]
             }
-        });
+        }) as Message;
 
         // Get the the return artifact from the EchoAgent
-        var message = echoTask.Artifacts!.Last().Parts.First().AsTextPart().Text;
+        var message = echoTask!.Parts.First().AsTextPart().Text;
 
         // Return as artifact to the HostedClientAgent
         var artifact = new Artifact()

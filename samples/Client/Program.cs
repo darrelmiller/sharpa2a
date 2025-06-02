@@ -129,7 +129,7 @@ class Program
             try
             {
                 // Choose method based on streaming mode
-                AgentTask response;
+                A2AResponse response;
                 if (useStreamingMode)
                 {
                     response = await SendMessageToAgentStreaming(userInput);
@@ -138,8 +138,18 @@ class Program
                 {
                     response = await SendMessageToAgent(userInput);
                 }
-                
-                DisplayAgentResponse(response);
+                if (response is AgentTask agentTask)
+                {
+                    DisplayAgentResponse(agentTask);
+                }
+                else if (response is Message message)
+                {
+                    Console.WriteLine($"{agentName}: {string.Join(" ", message.Parts.OfType<TextPart>().Select(p => p.Text))}");
+                }
+                else
+                {
+                    Console.WriteLine($"{agentName} returned an unexpected response type.");
+                }
             }
             catch (Exception ex)
             {
@@ -179,7 +189,7 @@ class Program
         {
             Message = new Message
             {
-                Role = "user",
+                Role = MessageRole.User,
                 Parts = new List<Part>
                 {
                     new TextPart
@@ -225,7 +235,7 @@ class Program
         return result;
     }
 
-    private static async Task<AgentTask> SendMessageToAgent(string messageText)
+    private static async Task<A2AResponse> SendMessageToAgent(string messageText)
     {
         if (client == null)
         {
@@ -254,7 +264,7 @@ class Program
             {
                 ContextId = currentSessionId,
                 MessageId = Guid.NewGuid().ToString("N"),
-                Role = "user",
+                Role = MessageRole.User,
                 Parts = new List<Part>
                 {
                     new TextPart
@@ -270,21 +280,33 @@ class Program
             activity?.AddEvent(new ActivityEvent("SendingMessage"));
             // Send the message using the A2A client
             var result = await client.Send(taskSendParams);
-            activity?.SetTag("task.id", result.Id);
 
-            // Wait for the agent to complete processing
-            while (result.Status?.State != TaskState.Completed &&
-                   result.Status?.State != TaskState.Failed)
+            if (result is AgentTask agentTask)
             {
-                // Poll for task updates
-                activity?.AddEvent(new ActivityEvent("PollingForUpdate"));
-                await Task.Delay(200);
-                result = await client.GetTask(result.Id);
-            }
+                activity?.SetTag("task.id", agentTask.Id);
 
-            activity?.SetTag("task.status", result.Status?.State.ToString());
-            activity?.AddEvent(new ActivityEvent("ReceivedResponse"));
-            return result;
+                // Wait for the agent to complete processing
+                while (agentTask.Status?.State != TaskState.Completed &&
+                       agentTask.Status?.State != TaskState.Failed)
+                {
+                    // Poll for task updates
+                    activity?.AddEvent(new ActivityEvent("PollingForUpdate"));
+                    await Task.Delay(200);
+                    result = await client.GetTask(agentTask.Id);
+                }
+
+                activity?.SetTag("task.status", agentTask.Status?.State.ToString());
+                activity?.AddEvent(new ActivityEvent("ReceivedResponse"));
+                return result;
+            } 
+            else if (result is Message message)
+            {
+                return message;
+            }
+            else
+            {
+                throw new InvalidOperationException("Unexpected response type from agent");
+            }
         }
         catch (Exception ex)
         {

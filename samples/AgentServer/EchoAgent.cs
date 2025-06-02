@@ -20,7 +20,9 @@ public class EchoAgent
         // Create and return an artifact
         var message = new Message()
         {
+            Role = MessageRole.Agent,
             MessageId = Guid.NewGuid().ToString(),
+            ContextId = messageSendParams.Message.ContextId,
             Parts = [new TextPart() {
                 Text = $"Echo: {messageText}"
             }]
