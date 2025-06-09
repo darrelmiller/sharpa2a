@@ -62,7 +62,7 @@ Content-Type: application/json
     "jsonrpc": "2.0",
     "method": "task/get",
     "params": {
-        "id": "1e46e6c3-29d2-4228-9d31-20e5f32059f2"
+        "id": "40dfa726-bc05-4fd4-aa3d-763d5972c9d0"
         }
 }
 
@@ -137,11 +137,11 @@ POST {{host}}/hostedclient
 Content-Type: application/json
 
 {
-    "id": "3",
+    "id": "d589ff00-daba-49a0-a01c-fa2a0924ada3",
     "jsonrpc": "2.0",
     "method": "task/get",
     "params": {
-        "id": "1234"
+        "id": "b6d9ce5c-c457-47af-be95-6bed646ab667"
         }
 }
 
@@ -155,10 +155,10 @@ Content-Type: application/json
 {
     "id": "1",
     "jsonrpc": "2.0",
-    "method": "task/send",
+    "method": "message/send",
     "params": {
-        "id": "asdasdasd",
-        "message": {
+       "message": {
+            "messageId": "asdasdasd",
             "role": "user",
             "parts": [
                 {
@@ -181,7 +181,7 @@ Content-Type: application/json
     "jsonrpc": "2.0",
     "method": "task/get",
     "params": {
-        "id": "asdasdasd"
+        "id": "c65e7047-2938-432f-bae0-660d6d9fda50"
     }
 }
 
@@ -193,10 +193,11 @@ Content-Type: application/json
 {
     "id": "1",
     "jsonrpc": "2.0",
-    "method": "task/send",
+    "method": "message/send",
     "params": {
-        "id": "asdasdasd",
         "message": {
+            "messageId": "abcdef",
+            "taskId": "c65e7047-2938-432f-bae0-660d6d9fda50",
             "role": "user",
             "parts": [
                 {

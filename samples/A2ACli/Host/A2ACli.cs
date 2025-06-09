@@ -134,14 +134,12 @@ public static class A2ACli
                     var taskResponse = await client.GetTask(taskId);
 
                     // Display history in a way similar to the Python version
-                    /*
                     if (taskResponse.History != null)
                     {
                         Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(
                             new { result = new { history = taskResponse.History } },
                             new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
                     }
-                    */
                     taskResponse?.History?
                         .SelectMany(artifact => artifact.Parts.OfType<TextPart>())
                         .ToList()
@@ -182,7 +180,7 @@ public static class A2ACli
         // Create message with text part
         var message = new Message
         {
-            Role = "user",
+            Role = MessageRole.User,
             Parts = new List<Part>
             {
                 new TextPart
@@ -253,20 +251,17 @@ public static class A2ACli
         Console.WriteLine($"Send task payload => {System.Text.Json.JsonSerializer.Serialize(payload, jsonOptions)}");
         if (streaming)
         {
-            /*
-            await foreach (var result in client.SendTaskStreamingAsync(payload))
+            await foreach (var result in client.SendSubscribe(payload))
             {
                 Console.WriteLine($"Stream event => {System.Text.Json.JsonSerializer.Serialize(result, jsonOptions)}");
             }
 
-            var taskResponse = await client.GetTaskAsync(new TaskQueryParams() { Id = taskId });
-            taskResult = taskResponse.Result;
-            */
+            var taskResult = await client.GetTask(taskId);
         }
         else
         {
-            agentTask = await client.Send(payload);
-            //Console.WriteLine($"\n{System.Text.Json.JsonSerializer.Serialize(agentTask, jsonOptions)}");
+            agentTask = await client.Send(payload) as AgentTask;
+            Console.WriteLine($"\n{System.Text.Json.JsonSerializer.Serialize(agentTask, jsonOptions)}");
             agentTask?.Artifacts?
                 .SelectMany(artifact => artifact.Parts.OfType<TextPart>())
                 .ToList()
