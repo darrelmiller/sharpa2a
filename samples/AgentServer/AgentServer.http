@@ -5,32 +5,56 @@ GET {{host}}/echo/.well-known/agent.json
 
 ## curl -N -X GET http://localhost:5048/echo/.well-known/agent.json
 
-### Send a task to the echo agent
+### Send a message to the echo agent
 POST {{host}}/echo
 Content-Type: application/json
 
 {
     "id": "3",
     "jsonrpc": "2.0",
-    "method": "task/send",
+    "method": "message/send",
     "params": {
-        "id": "12345",
-        "message": {
+          "message": {
+            "messageId": "12345",
             "role": "user",
             "parts": [
                 {
-                    "type": "text",
+                    "kind": "text",
                     "text": "Hello, world!"
                 }
             ]
         }
     }
 }
+
+### Send a message to the echo agent that uses tasks
+POST {{host}}/echotasks
+Content-Type: application/json
+
+{
+    "id": "3",
+    "jsonrpc": "2.0",
+    "method": "message/send",
+    "params": {
+          "message": {
+            "messageId": "12345",
+            "role": "user",
+            "parts": [
+                {
+                    "kind": "text",
+                    "text": "Hello, world!"
+                }
+            ]
+        }
+    }
+}
+
+
 
 ## curl -N -X POST http://localhost:5048/echo -H "Content-Type: application/json" -d '{ "id": "3","jsonrpc": "2.0","method": "task/sendsubscribe","params": {"id": "1234","message": {"role": "user","parts": [{"type": "text","text": "Hello, world!"}]}}}'
 
 ###
-POST {{host}}/echo
+POST {{host}}/echotasks
 Content-Type: application/json
 
 {
@@ -38,25 +62,47 @@ Content-Type: application/json
     "jsonrpc": "2.0",
     "method": "task/get",
     "params": {
-        "id": "12345"
+        "id": "40dfa726-bc05-4fd4-aa3d-763d5972c9d0"
         }
 }
 
-### SendSubscribe a task to the echo agent
+### SendSubscribe the echo agent
 POST {{host}}/echo
 Content-Type: application/json
 
 {
     "id": "3",
     "jsonrpc": "2.0",
-    "method": "task/sendsubscribe",
+    "method": "message/stream",
     "params": {
-        "id": "sendsubscribeTaskId6",
         "message": {
+            "messageId": "messageId2",
             "role": "user",
             "parts": [
                 {
-                    "type": "text",
+                    "kind": "text",
+                    "text": "Hello, world!"
+                }
+            ]
+        }
+    }
+}
+
+### SendSubscribe the echo agent with tasks
+POST {{host}}/echotasks
+Content-Type: application/json
+
+{
+    "id": "3",
+    "jsonrpc": "2.0",
+    "method": "message/stream",
+    "params": {
+        "message": {
+            "messageId": "messageId2",
+            "role": "user",
+            "parts": [
+                {
+                    "kind": "text",
                     "text": "Hello, world!"
                 }
             ]
@@ -71,14 +117,14 @@ Content-Type: application/json
 {
     "id": "3",
     "jsonrpc": "2.0",
-    "method": "task/send",
+    "method": "message/send",
     "params": {
-        "id": "1234",
         "message": {
+            "messageId": "1234",
             "role": "user",
             "parts": [
                 {
-                    "type": "text",
+                    "kind": "text",
                     "text": "Hello, world!"
                 }
             ]
@@ -91,11 +137,11 @@ POST {{host}}/hostedclient
 Content-Type: application/json
 
 {
-    "id": "3",
+    "id": "d589ff00-daba-49a0-a01c-fa2a0924ada3",
     "jsonrpc": "2.0",
     "method": "task/get",
     "params": {
-        "id": "1234"
+        "id": "b6d9ce5c-c457-47af-be95-6bed646ab667"
         }
 }
 
@@ -109,14 +155,14 @@ Content-Type: application/json
 {
     "id": "1",
     "jsonrpc": "2.0",
-    "method": "task/send",
+    "method": "message/send",
     "params": {
-        "id": "asdasdasd",
-        "message": {
+       "message": {
+            "messageId": "asdasdasd",
             "role": "user",
             "parts": [
                 {
-                    "type": "text",
+                    "kind": "text",
                     "text": "Research the current price of butter"
                 }
             ]
@@ -135,7 +181,7 @@ Content-Type: application/json
     "jsonrpc": "2.0",
     "method": "task/get",
     "params": {
-        "id": "asdasdasd"
+        "id": "c65e7047-2938-432f-bae0-660d6d9fda50"
     }
 }
 
@@ -147,14 +193,15 @@ Content-Type: application/json
 {
     "id": "1",
     "jsonrpc": "2.0",
-    "method": "task/send",
+    "method": "message/send",
     "params": {
-        "id": "asdasdasd",
         "message": {
+            "messageId": "abcdef",
+            "taskId": "c65e7047-2938-432f-bae0-660d6d9fda50",
             "role": "user",
             "parts": [
                 {
-                    "type": "text",
+                    "kind": "text",
                     "text": "go ahead"
                 }
             ]

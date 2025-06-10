@@ -1,54 +1,21 @@
 using System.Text.Json;
-using DomFactory;
 
 namespace SharpA2A.Core;
 
 public static class A2AMethods
 {
-    public const string TaskSend = "task/send";
-    public const string TaskGet = "task/get";
-    public const string TaskCancel = "task/cancel";
-    public const string TaskPushNotificationConfigSet = "task/pushnotificationconfig/set";
-    public const string TaskPushNotificationConfigGet = "task/pushnotificationconfig/get";
-    public const string TaskSendSubscribe = "task/sendsubscribe";
+    public const string MessageSend = "message/send";
+    public const string MessageStream = "message/stream";
+    public const string TaskGet = "tasks/get";
+    public const string TaskCancel = "tasks/cancel";
+    public const string TaskResubscribe = "tasks/resubscribe";
+    public const string TaskPushNotificationConfigSet = "tasks/pushnotificationconfig/set";
+    public const string TaskPushNotificationConfigGet = "tasks/pushnotificationconfig/get";
+
 
     public static bool IsStreamingMethod(string method)
     {
-        return method == TaskSendSubscribe;
+        return method == MessageStream || method == TaskResubscribe;
     }
-
-    public static IJsonRpcParams ParseParameters(ValidationContext context, string method, JsonElement paramsElement)
-    {
-        object parsedParams;
-        switch (method)
-        {
-            case A2AMethods.TaskSend:
-                parsedParams = TaskSendParams.Load(paramsElement, context);
-                break;
-            case A2AMethods.TaskGet:
-                parsedParams = TaskIdParams.Load(paramsElement, context);
-                break;
-
-            case A2AMethods.TaskCancel:
-                parsedParams = TaskIdParams.Load(paramsElement, context);
-                break;
-
-            case A2AMethods.TaskPushNotificationConfigSet:
-                parsedParams = TaskPushNotificationConfig.Load(paramsElement, context);
-                break;
-
-            case A2AMethods.TaskPushNotificationConfigGet:
-                parsedParams = TaskIdParams.Load(paramsElement, context);
-                break;
-
-            case A2AMethods.TaskSendSubscribe:
-                parsedParams = TaskSendParams.Load(paramsElement, context);
-                break;
-
-            default:
-                throw new NotImplementedException($"Method {method} not implemented.");
-        }
-        return (IJsonRpcParams)parsedParams;
-    }
-
 }
+

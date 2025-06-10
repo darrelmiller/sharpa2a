@@ -1,33 +1,30 @@
 using System.Diagnostics;
 using SharpA2A.Core;
 
-public class EchoAgent
+public class EchoAgentWithTasks
 {
     private ITaskManager? _TaskManager = null;
 
     public void Attach(TaskManager taskManager)
     {
         _TaskManager = taskManager;
-        taskManager.OnMessageReceived = ProcessMessage;
+        taskManager.OnTaskCreated = ProcessMessage;
+        taskManager.OnTaskUpdated = ProcessMessage;
         taskManager.OnAgentCardQuery = GetAgentCard;
     }
 
-    public Task<Message> ProcessMessage(MessageSendParams messageSendParams)
+    public async Task ProcessMessage(AgentTask task)
     {
         // Process the message
-        var messageText = messageSendParams.Message.Parts.OfType<TextPart>().First().Text;
+        var messageText = task.History!.Last().Parts.OfType<TextPart>().First().Text;
 
-        // Create and return an artifact
-        var message = new Message()
+        await _TaskManager!.ReturnArtifactAsync(task.Id, new Artifact()
         {
-            Role = MessageRole.Agent,
-            MessageId = Guid.NewGuid().ToString(),
-            ContextId = messageSendParams.Message.ContextId,
             Parts = [new TextPart() {
                 Text = $"Echo: {messageText}"
             }]
-        };
-        return Task.FromResult(message);
+        });
+        await _TaskManager!.UpdateStatusAsync(task.Id, TaskState.Completed,final: true);
     }
 
     public AgentCard GetAgentCard(string agentUrl)

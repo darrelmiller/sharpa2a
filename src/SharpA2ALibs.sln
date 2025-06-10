@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DomFactory", "DomFactory\DomFactory.csproj", "{4FCF9D4B-525A-4053-A9FA-63E3AC24F572}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpA2A.AspNetCore", "SharpA2A.AspNetCore\SharpA2A.AspNetCore.csproj", "{A983E04C-AF73-4D83-9188-497BFAD518DD}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpA2A.Core", "SharpA2A.Core\SharpA2A.Core.csproj", "{E28FA3A1-96C4-4644-9629-89D3F44E7692}"

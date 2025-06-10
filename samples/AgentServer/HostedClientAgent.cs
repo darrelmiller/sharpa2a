@@ -4,7 +4,7 @@ using System.Diagnostics;
 
 public class HostedClientAgent
 {
-    private TaskManager? _TaskManager;
+    private ITaskManager? _TaskManager;
     private A2AClient echoClient;
     public static readonly ActivitySource ActivitySource = new ActivitySource("A2A.HostedClientAgent", "1.0.0");
 
@@ -29,7 +29,7 @@ public class HostedClientAgent
     {
         using var activity = ActivitySource.StartActivity("ExecuteAgentTask", ActivityKind.Server);
         activity?.SetTag("task.id", task.Id);
-        activity?.SetTag("task.sessionId", task.SessionId);
+        activity?.SetTag("task.sessionId", task.ContextId);
 
         if (_TaskManager == null)
         {
@@ -41,19 +41,20 @@ public class HostedClientAgent
 
         // Get message from the user to HostedClientAgent
         var userMessage = task.History!.Last().Parts.First().AsTextPart().Text;
-        var echoTask = await echoClient.Send(new TaskSendParams()
+        var echoTask = await echoClient.SendMessageAsync(new MessageSendParams() 
         {
-            Id = Guid.NewGuid().ToString(),
             Message = new Message()
             {
+                Role = MessageRole.User,
+                ContextId = task.ContextId,
                 Parts = [new TextPart() {
                     Text = $"HostedClientAgent received {userMessage}"
                 }]
             }
-        });
+        }) as Message;
 
         // Get the the return artifact from the EchoAgent
-        var message = echoTask.Artifacts!.Last().Parts.First().AsTextPart().Text;
+        var message = echoTask!.Parts.First().AsTextPart().Text;
 
         // Return as artifact to the HostedClientAgent
         var artifact = new Artifact()

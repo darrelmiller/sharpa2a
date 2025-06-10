@@ -131,17 +131,15 @@ public static class A2ACli
                 if (history && continueLoop)
                 {
                     Console.WriteLine("========= history ======== ");
-                    var taskResponse = await client.GetTask(taskId);
+                    var taskResponse = await client.GetTaskAsync(taskId);
 
                     // Display history in a way similar to the Python version
-                    /*
                     if (taskResponse.History != null)
                     {
                         Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(
                             new { result = new { history = taskResponse.History } },
                             new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
                     }
-                    */
                     taskResponse?.History?
                         .SelectMany(artifact => artifact.Parts.OfType<TextPart>())
                         .ToList()
@@ -182,7 +180,7 @@ public static class A2ACli
         // Create message with text part
         var message = new Message
         {
-            Role = "user",
+            Role = MessageRole.User,
             Parts = new List<Part>
             {
                 new TextPart
@@ -205,7 +203,7 @@ public static class A2ACli
 
                 message.Parts.Add(new FilePart
                 {
-                    File = new FileContent
+                    File = new FileWithBytes
                     {
                         Name = fileName,
                         Bytes = fileContent
@@ -219,18 +217,19 @@ public static class A2ACli
         }
 
         // Create payload for the task
-        var payload = new TaskSendParams()
+        var payload = new MessageSendParams()
         {
-            Id = taskId,
-            SessionId = sessionId,
-            AcceptedOutputModes = new List<string> { "text" },
-            Message = message
-        };
+            Configuration = new()
+            {
+                AcceptedOutputModes = new List<string> { "text" }
+            },
+                Message = message
+            };
 
         // Add push notification configuration if enabled
         if (usePushNotifications)
         {
-            payload.PushNotification = new PushNotificationConfig
+            payload.Configuration.PushNotification = new PushNotificationConfig
             {
                 Url = $"http://{notificationReceiverHost}:{notificationReceiverPort}/notify",
                 Authentication = new AuthenticationInfo
@@ -252,20 +251,17 @@ public static class A2ACli
         Console.WriteLine($"Send task payload => {System.Text.Json.JsonSerializer.Serialize(payload, jsonOptions)}");
         if (streaming)
         {
-            /*
-            await foreach (var result in client.SendTaskStreamingAsync(payload))
+            await foreach (var result in client.SendMessageStreamAsync(payload))
             {
                 Console.WriteLine($"Stream event => {System.Text.Json.JsonSerializer.Serialize(result, jsonOptions)}");
             }
 
-            var taskResponse = await client.GetTaskAsync(new TaskQueryParams() { Id = taskId });
-            taskResult = taskResponse.Result;
-            */
+            var taskResult = await client.GetTaskAsync(taskId);
         }
         else
         {
-            agentTask = await client.Send(payload);
-            //Console.WriteLine($"\n{System.Text.Json.JsonSerializer.Serialize(agentTask, jsonOptions)}");
+            agentTask = await client.SendMessageAsync(payload) as AgentTask;
+            Console.WriteLine($"\n{System.Text.Json.JsonSerializer.Serialize(agentTask, jsonOptions)}");
             agentTask?.Artifacts?
                 .SelectMany(artifact => artifact.Parts.OfType<TextPart>())
                 .ToList()

@@ -4,10 +4,11 @@ namespace SharpA2A.Core;
 
 public interface IA2AClient
 {
-    Task<AgentTask> Send(TaskSendParams taskSendParams);
-    Task<AgentTask> GetTask(string taskId);
-    Task<AgentTask> CancelTask(TaskIdParams taskIdParams);
-    IAsyncEnumerable<SseItem<TaskUpdateEvent>> SendSubscribe(TaskSendParams taskSendParams);
-    Task<TaskPushNotificationConfig> SetPushNotification(TaskPushNotificationConfig pushNotificationConfig);
-    Task<TaskPushNotificationConfig> GetPushNotification(TaskIdParams taskIdParams);
+    Task<A2AResponse> SendMessageAsync(MessageSendParams taskSendParams);
+    Task<AgentTask> GetTaskAsync(string taskId);
+    Task<AgentTask> CancelTaskAsync(TaskIdParams taskIdParams);
+    IAsyncEnumerable<SseItem<A2AEvent>> SendMessageStreamAsync(MessageSendParams taskSendParams);
+    IAsyncEnumerable<SseItem<A2AEvent>> ResubscribeToTaskAsync(string taskId);
+    Task<TaskPushNotificationConfig> SetPushNotificationAsync(TaskPushNotificationConfig pushNotificationConfig);
+    Task<TaskPushNotificationConfig> GetPushNotificationAsync(TaskIdParams taskIdParams);
 }

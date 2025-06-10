@@ -12,7 +12,7 @@ namespace Client;
 
 class Program
 {
-    private const string DefaultAgentUrl = "http://localhost:5048/echo";
+    private const string DefaultAgentUrl = "http://localhost:5048/echotasks";
     private const string DefaultAgentName = "Echo Agent";
     private static string agentUrl = DefaultAgentUrl;
     private static string agentName = DefaultAgentName;
@@ -129,7 +129,7 @@ class Program
             try
             {
                 // Choose method based on streaming mode
-                AgentTask response;
+                A2AResponse response;
                 if (useStreamingMode)
                 {
                     response = await SendMessageToAgentStreaming(userInput);
@@ -138,8 +138,18 @@ class Program
                 {
                     response = await SendMessageToAgent(userInput);
                 }
-                
-                DisplayAgentResponse(response);
+                if (response is AgentTask agentTask)
+                {
+                    DisplayAgentResponse(agentTask);
+                }
+                else if (response is Message message)
+                {
+                    Console.WriteLine($"{agentName}: {string.Join(" ", message.Parts.OfType<TextPart>().Select(p => p.Text))}");
+                }
+                else
+                {
+                    Console.WriteLine($"{agentName} returned an unexpected response type.");
+                }
             }
             catch (Exception ex)
             {
@@ -175,32 +185,41 @@ class Program
         }
 
         // Create a TaskSendParams with the user's message
-        var taskSendParams = new TaskSendParams
+        var taskSendParams = new MessageSendParams
         {
-            Id = Guid.NewGuid().ToString("N"),
-            SessionId = currentSessionId,
             Message = new Message
             {
-                Role = "user",
+                Role = MessageRole.User,
                 Parts = new List<Part>
                 {
                     new TextPart
                     {
-                        Type = "text",
                         Text = messageText
                     }
                 }
             }
         };
 
-        string taskId = taskSendParams.Id;
-        await foreach( var item in client.SendSubscribe(taskSendParams)) {
-            switch(item.Data) {
+        string? taskId = null;
+        await foreach (var item in client.SendMessageStreamAsync(taskSendParams))
+        {
+            switch (item.Data)
+            {
                 case TaskStatusUpdateEvent taskUpdateEvent:
-                    Console.WriteLine($"Task {taskId} updated: {taskUpdateEvent.Status.State}");
+                    taskId = taskUpdateEvent.TaskId;
+                    Console.WriteLine($"Task {taskUpdateEvent.TaskId} updated: {taskUpdateEvent.Status.State}");
                     break;
                 case TaskArtifactUpdateEvent taskArtifactEvent:
-                    Console.WriteLine($"Task {taskId} artifact updated: {taskArtifactEvent.Artifact.Name}");
+                    taskId = taskArtifactEvent.TaskId;
+                    Console.WriteLine($"Task {taskArtifactEvent.TaskId} artifact updated: {taskArtifactEvent.Artifact.Name}");
+                    break;
+                case AgentTask agentTask:
+                    taskId = agentTask.Id;
+                    Console.WriteLine($"Received task {agentTask.Id} with status {agentTask.Status.State}");
+                    if (agentTask.Artifacts != null && agentTask.Artifacts.Count > 0)
+                    {
+                        Console.WriteLine($"Artifacts count: {agentTask.Artifacts.Count}");
+                    }
                     break;
                 default:
                     Console.WriteLine($"Unknown event type: {item.EventType}");
@@ -208,11 +227,15 @@ class Program
             }
         }
 
-        var result = await client.GetTask(taskId);
+        if (string.IsNullOrEmpty(taskId))
+        {
+            throw new InvalidOperationException("No task ID received from the agent");
+        }
+        var result = await client.GetTaskAsync(taskId);
         return result;
     }
 
-    private static async Task<AgentTask> SendMessageToAgent(string messageText)
+    private static async Task<A2AResponse> SendMessageToAgent(string messageText)
     {
         if (client == null)
         {
@@ -235,18 +258,17 @@ class Program
         Console.WriteLine($"Debug: Started activity {activity?.Id} of kind {activity?.Kind}");
 
         // Create a TaskSendParams with the user's message
-        var taskSendParams = new TaskSendParams
+        var taskSendParams = new MessageSendParams
         {
-            Id = Guid.NewGuid().ToString("N"),
-            SessionId = currentSessionId,
             Message = new Message
             {
-                Role = "user",
+                ContextId = currentSessionId,
+                MessageId = Guid.NewGuid().ToString("N"),
+                Role = MessageRole.User,
                 Parts = new List<Part>
                 {
                     new TextPart
                     {
-                        Type = "text",
                         Text = messageText
                     }
                 }
@@ -257,22 +279,34 @@ class Program
         {
             activity?.AddEvent(new ActivityEvent("SendingMessage"));
             // Send the message using the A2A client
-            var result = await client.Send(taskSendParams);
-            activity?.SetTag("task.id", result.Id);
+            var result = await client.SendMessageAsync(taskSendParams);
 
-            // Wait for the agent to complete processing
-            while (result.Status?.State != TaskState.Completed &&
-                   result.Status?.State != TaskState.Failed)
+            if (result is AgentTask agentTask)
             {
-                // Poll for task updates
-                activity?.AddEvent(new ActivityEvent("PollingForUpdate"));
-                await Task.Delay(200);
-                result = await client.GetTask(result.Id);
-            }
+                activity?.SetTag("task.id", agentTask.Id);
 
-            activity?.SetTag("task.status", result.Status?.State.ToString());
-            activity?.AddEvent(new ActivityEvent("ReceivedResponse"));
-            return result;
+                // Wait for the agent to complete processing
+                while (agentTask.Status?.State != TaskState.Completed &&
+                       agentTask.Status?.State != TaskState.Failed)
+                {
+                    // Poll for task updates
+                    activity?.AddEvent(new ActivityEvent("PollingForUpdate"));
+                    await Task.Delay(200);
+                    result = await client.GetTaskAsync(agentTask.Id);
+                }
+
+                activity?.SetTag("task.status", agentTask.Status?.State.ToString());
+                activity?.AddEvent(new ActivityEvent("ReceivedResponse"));
+                return result;
+            } 
+            else if (result is Message message)
+            {
+                return message;
+            }
+            else
+            {
+                throw new InvalidOperationException("Unexpected response type from agent");
+            }
         }
         catch (Exception ex)
         {
