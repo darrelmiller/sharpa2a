@@ -13,20 +13,20 @@ public class A2AClient : IA2AClient
         _client = client;
     }
 
-    public async Task<A2AResponse> Send(MessageSendParams taskSendParams)
+    public async Task<A2AResponse> SendMessageAsync(MessageSendParams taskSendParams)
     {
         return await RpcRequest<MessageSendParams, A2AResponse>(taskSendParams, A2AMethods.MessageSend);
     }
-    public async Task<AgentTask> GetTask(string taskId)
+    public async Task<AgentTask> GetTaskAsync(string taskId)
     {
         return await RpcRequest<TaskIdParams, AgentTask>(new TaskIdParams() { Id = taskId }, A2AMethods.TaskGet);
     }
-    public async Task<AgentTask> CancelTask(TaskIdParams taskIdParams)
+    public async Task<AgentTask> CancelTaskAsync(TaskIdParams taskIdParams)
     {
         return await RpcRequest<TaskIdParams, AgentTask>(taskIdParams, A2AMethods.TaskCancel);
     }
 
-    public async IAsyncEnumerable<SseItem<A2AEvent>> SendSubscribe(MessageSendParams taskSendParams)
+    public async IAsyncEnumerable<SseItem<A2AEvent>> SendMessageStreamAsync(MessageSendParams taskSendParams)
     {
         var request = new JsonRpcRequest()
         {
@@ -59,11 +59,44 @@ public class A2AClient : IA2AClient
         }
     }
 
-    public async Task<TaskPushNotificationConfig> SetPushNotification(TaskPushNotificationConfig pushNotificationConfig)
+    public async IAsyncEnumerable<SseItem<A2AEvent>> ResubscribeToTaskAsync(string taskId)
+    {
+        var request = new JsonRpcRequest()
+        {
+            Id = Guid.NewGuid().ToString(),
+            Method = A2AMethods.TaskResubscribe,
+            Params = ToJsonElement(new TaskIdParams() { Id = taskId })
+        };
+        var response = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "")
+        {
+            Content = new JsonRpcContent(request)
+        });
+        response.EnsureSuccessStatusCode();
+        var stream = await response.Content.ReadAsStreamAsync();
+        var sseParser = SseParser.Create<A2AEvent>(stream, (eventType, data) =>
+        {
+            var reader = new Utf8JsonReader(data);
+            var taskEvent = JsonSerializer.Deserialize<A2AEvent>(ref reader, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
+            if (taskEvent == null)
+            {
+                throw new InvalidOperationException("Failed to deserialize the event.");
+            }
+            return taskEvent;
+        });
+        await foreach (var item in sseParser.EnumerateAsync())
+        {
+            yield return item;
+        }
+    }
+
+    public async Task<TaskPushNotificationConfig> SetPushNotificationAsync(TaskPushNotificationConfig pushNotificationConfig)
     {
         return await RpcRequest<TaskPushNotificationConfig, TaskPushNotificationConfig>(pushNotificationConfig, "task/pushNotification/set");
     }
-    public async Task<TaskPushNotificationConfig> GetPushNotification(TaskIdParams taskIdParams)
+    public async Task<TaskPushNotificationConfig> GetPushNotificationAsync(TaskIdParams taskIdParams)
     {
         return await RpcRequest<TaskIdParams, TaskPushNotificationConfig>(taskIdParams, "task/pushNotification/get");
     }

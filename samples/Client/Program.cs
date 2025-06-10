@@ -201,7 +201,7 @@ class Program
         };
 
         string? taskId = null;
-        await foreach (var item in client.SendSubscribe(taskSendParams))
+        await foreach (var item in client.SendMessageStreamAsync(taskSendParams))
         {
             switch (item.Data)
             {
@@ -231,7 +231,7 @@ class Program
         {
             throw new InvalidOperationException("No task ID received from the agent");
         }
-        var result = await client.GetTask(taskId);
+        var result = await client.GetTaskAsync(taskId);
         return result;
     }
 
@@ -279,7 +279,7 @@ class Program
         {
             activity?.AddEvent(new ActivityEvent("SendingMessage"));
             // Send the message using the A2A client
-            var result = await client.Send(taskSendParams);
+            var result = await client.SendMessageAsync(taskSendParams);
 
             if (result is AgentTask agentTask)
             {
@@ -292,7 +292,7 @@ class Program
                     // Poll for task updates
                     activity?.AddEvent(new ActivityEvent("PollingForUpdate"));
                     await Task.Delay(200);
-                    result = await client.GetTask(agentTask.Id);
+                    result = await client.GetTaskAsync(agentTask.Id);
                 }
 
                 activity?.SetTag("task.status", agentTask.Status?.State.ToString());

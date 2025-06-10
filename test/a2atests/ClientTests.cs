@@ -24,7 +24,7 @@ public class ClientTests : IClassFixture<JsonSchemaFixture> {
         var taskId = "test-task";
 
         // Act
-        var result = await client.GetTask(taskId);
+        var result = await client.GetTaskAsync(taskId);
         var message = mockHandler.Request?.Content != null
             ? await mockHandler.Request.Content.ReadAsStringAsync()
             : string.Empty;
@@ -58,7 +58,7 @@ public class ClientTests : IClassFixture<JsonSchemaFixture> {
         };
 
         // Act
-        var result = await client.Send(taskSendParams);
+        var result = await client.SendMessageAsync(taskSendParams);
         var message = await mockHandler!.Request!.Content!.ReadAsStringAsync();
 
         // Assert
@@ -80,7 +80,7 @@ public class ClientTests : IClassFixture<JsonSchemaFixture> {
         var taskId = "test-task";
 
         // Act
-        var result = await client.CancelTask(new TaskIdParams { Id = taskId });
+        var result = await client.CancelTaskAsync(new TaskIdParams { Id = taskId });
         var message = await mockHandler!.Request!.Content!.ReadAsStringAsync();
 
         // Assert
@@ -114,7 +114,7 @@ public class ClientTests : IClassFixture<JsonSchemaFixture> {
         };
 
         // Act
-        var result = await client.SetPushNotification(pushNotificationConfig);
+        var result = await client.SetPushNotificationAsync(pushNotificationConfig);
         var message = await mockHandler!.Request!.Content!.ReadAsStringAsync();
 
         // Assert

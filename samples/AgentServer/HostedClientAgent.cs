@@ -41,7 +41,7 @@ public class HostedClientAgent
 
         // Get message from the user to HostedClientAgent
         var userMessage = task.History!.Last().Parts.First().AsTextPart().Text;
-        var echoTask = await echoClient.Send(new MessageSendParams() 
+        var echoTask = await echoClient.SendMessageAsync(new MessageSendParams() 
         {
             Message = new Message()
             {

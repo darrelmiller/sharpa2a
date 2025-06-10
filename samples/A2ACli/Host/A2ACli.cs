@@ -131,7 +131,7 @@ public static class A2ACli
                 if (history && continueLoop)
                 {
                     Console.WriteLine("========= history ======== ");
-                    var taskResponse = await client.GetTask(taskId);
+                    var taskResponse = await client.GetTaskAsync(taskId);
 
                     // Display history in a way similar to the Python version
                     if (taskResponse.History != null)
@@ -251,16 +251,16 @@ public static class A2ACli
         Console.WriteLine($"Send task payload => {System.Text.Json.JsonSerializer.Serialize(payload, jsonOptions)}");
         if (streaming)
         {
-            await foreach (var result in client.SendSubscribe(payload))
+            await foreach (var result in client.SendMessageStreamAsync(payload))
             {
                 Console.WriteLine($"Stream event => {System.Text.Json.JsonSerializer.Serialize(result, jsonOptions)}");
             }
 
-            var taskResult = await client.GetTask(taskId);
+            var taskResult = await client.GetTaskAsync(taskId);
         }
         else
         {
-            agentTask = await client.Send(payload) as AgentTask;
+            agentTask = await client.SendMessageAsync(payload) as AgentTask;
             Console.WriteLine($"\n{System.Text.Json.JsonSerializer.Serialize(agentTask, jsonOptions)}");
             agentTask?.Artifacts?
                 .SelectMany(artifact => artifact.Parts.OfType<TextPart>())
