@@ -211,7 +211,7 @@ class Program
                     break;
                 case TaskArtifactUpdateEvent taskArtifactEvent:
                     taskId = taskArtifactEvent.TaskId;
-                    Console.WriteLine($"Task {taskArtifactEvent} artifact updated: {taskArtifactEvent.Artifact.Name}");
+                    Console.WriteLine($"Task {taskArtifactEvent.TaskId} artifact updated: {taskArtifactEvent.Artifact.Name}");
                     break;
                 case AgentTask agentTask:
                     taskId = agentTask.Id;
