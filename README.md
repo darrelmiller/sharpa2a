@@ -3,20 +3,7 @@ Interact with agents using the A2A protocol in .NET applications. This library i
 
 ## Status
 
-This library is in early development and is not yet ready for production use. The following shows the current status of the library:
-
-- Server
-    - task/send  (push notification set is not yet implemented)
-    - task/sendsubscribe
-    - task/get  (history length is not yet implemented)
-    - task/pushnotification/set  (Client notifications are not yet sent)
-    - task/pushnotification/get
-- Client
-    - task/send
-    - task/get
-    - task/sendsubscribe (Not yet implemented)
-    - task/pushnotification/set  (Client notifications cannot yet be received)
-    - task/pushnotification/get
+This library has implemented the majority of the protocol v0.2.1, however there are likely some scenarios that are still not complete.  Buyer beware.  The biggest piece of functionality that is missing is client callbacks using push notifications.
 
 ## Overview
 ![alt text](overview.png)
