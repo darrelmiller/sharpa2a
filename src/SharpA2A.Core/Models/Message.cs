@@ -61,6 +61,8 @@ public class Message : A2AResponse
     [JsonPropertyName("contextId")]
     public string? ContextId { get; set; }
 
+    [JsonPropertyName("extensions")]
+    public string[]? Extensions { get; set; }
 }
 
 

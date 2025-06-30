@@ -23,6 +23,8 @@ public class Artifact
     [JsonPropertyName("metadata")]
     public Dictionary<string, JsonElement>? Metadata { get; set; }
 
+    [JsonPropertyName("extensions")]
+    public string[]? Extensions { get; set; }
 }
 
 

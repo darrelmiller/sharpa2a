@@ -33,6 +33,26 @@ public class AgentCard
     [Required]
     public string Url { get; set; } = string.Empty;
 
+    ///
+    /// The transport of the preferred endpoint. If empty, defaults to JSONRPC.
+    ///
+    [JsonPropertyName("preferredTransport")]
+    public string? PreferredTransport;
+
+    ///
+    /// Announcement of additional supported transports. Client can use any of
+    /// the supported transports.
+    ///
+    [JsonPropertyName("additionalInterfaces")]
+    public AgentInterface[]? additionalInterfaces;
+
+
+    /// <summary>
+    /// Icon URL for the agent (e.g., `https://agent.example.com/icon.png`).
+    ///
+    [JsonPropertyName("iconUrl")]
+    public string? IconUrl { get; set; }
+
     /// <summary>
     /// Information about the organization or entity providing the agent.
     /// </summary>

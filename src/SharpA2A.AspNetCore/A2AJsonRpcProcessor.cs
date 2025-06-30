@@ -181,11 +181,7 @@ public static class A2AJsonRpcProcessor
                 httpContext.Response.StatusCode = StatusCodes.Status200OK;
             }
 
-            await JsonSerializer.SerializeAsync(httpContext.Response.Body,  jsonRpcResponse, jsonRpcResponse.GetType(), new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                WriteIndented = false
-            });
+            await JsonSerializer.SerializeAsync(httpContext.Response.Body,  jsonRpcResponse, jsonRpcResponse.GetType(), JsonUtilities.DefaultSerializerOptions);
         }
     }
 
@@ -225,11 +221,7 @@ public static class A2AJsonRpcProcessor
             if (Data != null)
             {
                 var jsonStream = new MemoryStream();
-                await JsonSerializer.SerializeAsync(jsonStream, Data, Data.GetType(), new JsonSerializerOptions
-                {
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                    WriteIndented = false
-                });
+                await JsonSerializer.SerializeAsync(jsonStream, Data, Data.GetType(), JsonUtilities.DefaultSerializerOptions);
                 jsonStream.Position = 0;
                 using var reader = new StreamReader(jsonStream);
                 var json = reader.ReadToEnd();

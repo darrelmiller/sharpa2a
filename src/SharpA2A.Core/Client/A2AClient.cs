@@ -43,10 +43,7 @@ public class A2AClient : IA2AClient
         var sseParser = SseParser.Create<A2AEvent>(stream, (eventType, data) =>
         {
             var reader = new Utf8JsonReader(data);
-            var taskEvent = JsonSerializer.Deserialize<A2AEvent>(ref reader, new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            });
+            var taskEvent = JsonSerializer.Deserialize<A2AEvent>(ref reader, JsonUtilities.DefaultSerializerOptions);
             if (taskEvent == null)
             {
                 throw new InvalidOperationException("Failed to deserialize the event.");
@@ -76,10 +73,7 @@ public class A2AClient : IA2AClient
         var sseParser = SseParser.Create<A2AEvent>(stream, (eventType, data) =>
         {
             var reader = new Utf8JsonReader(data);
-            var taskEvent = JsonSerializer.Deserialize<A2AEvent>(ref reader, new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            });
+            var taskEvent = JsonSerializer.Deserialize<A2AEvent>(ref reader, JsonUtilities.DefaultSerializerOptions);
             if (taskEvent == null)
             {
                 throw new InvalidOperationException("Failed to deserialize the event.");
@@ -120,33 +114,25 @@ public class A2AClient : IA2AClient
         }
 
         var responseStream = await response.Content.ReadAsStreamAsync();
-        var responseObject = await JsonSerializer.DeserializeAsync<JsonRpcResponse>(responseStream, new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        });
+        var responseObject = await JsonSerializer.DeserializeAsync<JsonRpcResponse>(responseStream, JsonUtilities.DefaultSerializerOptions);
 
         if (responseObject == null)
         {
             throw new InvalidOperationException("Failed to deserialize the response.");
         }
-        var resultObject = JsonSerializer.Deserialize<OUT>(responseObject.Result, new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        });
+        var resultObject = JsonSerializer.Deserialize<OUT>(responseObject.Result, JsonUtilities.DefaultSerializerOptions);
         return resultObject ?? throw new InvalidOperationException("Response does not contain a result.");
-    }
-
-    public static JsonElement ToJsonElement<T>(T value)
+    }    public static JsonElement ToJsonElement<T>(T value)
     {
         // TODO: Reduce memory allocations
-        // Serialize the object to a JSON string
-        var json = JsonSerializer.Serialize(value);
+        // Serialize the object to a JSON string
+        var json = JsonSerializer.Serialize(value, JsonUtilities.DefaultSerializerOptions);
 
-        // Parse the JSON string into a JsonDocument
-        using var document = JsonDocument.Parse(json);
+        // Parse the JSON string into a JsonDocument
+        using var document = JsonDocument.Parse(json);
 
-        // Return the root element
-        return document.RootElement.Clone(); // Clone to avoid disposal issues
+        // Return the root element
+        return document.RootElement.Clone(); // Clone to avoid disposal issues
     }
 
 }

@@ -226,11 +226,7 @@ public class A2AResponseResult : IResult
     {
         httpContext.Response.ContentType = "application/json";
 
-        await JsonSerializer.SerializeAsync(httpContext.Response.Body, a2aResponse, a2aResponse.GetType(), new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = true
-        });
+        await JsonSerializer.SerializeAsync(httpContext.Response.Body, a2aResponse, a2aResponse.GetType(), JsonUtilities.DefaultSerializerOptions);
     }
 }
 
@@ -249,11 +245,7 @@ public class A2AEventStreamResult : IResult
         httpContext.Response.ContentType = "text/event-stream";
         await foreach (var taskEvent in taskEvents)
         {
-            var json = JsonSerializer.Serialize(taskEvent, taskEvent.GetType(), new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                WriteIndented = true
-            });
+            var json = JsonSerializer.Serialize(taskEvent, taskEvent.GetType(), JsonUtilities.DefaultSerializerOptions);
             await httpContext.Response.BodyWriter.WriteAsync(Encoding.UTF8.GetBytes($"data: {json}\n\n"));
             await httpContext.Response.BodyWriter.FlushAsync();
         }

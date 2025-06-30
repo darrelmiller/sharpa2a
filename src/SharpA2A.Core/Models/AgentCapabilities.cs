@@ -24,4 +24,10 @@ public class AgentCapabilities
     /// </summary>
     [JsonPropertyName("stateTransitionHistory")]
     public bool StateTransitionHistory { get; set; }
+
+    /// <summary>
+    /// Extensions supported by this agent.
+    /// </summary>
+    [JsonPropertyName("extensions")]
+    public AgentExtension[]? Extensions { get; set; }
 }
