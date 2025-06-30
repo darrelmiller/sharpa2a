@@ -54,18 +54,12 @@ public class JsonRpcError
     // Deserialize a JsonRpcError from a JsonElement
     public static JsonRpcError FromJson(JsonElement jsonElement)
     {
-        return JsonSerializer.Deserialize<JsonRpcError>(jsonElement.GetRawText(), new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        }) ?? throw new InvalidOperationException("Failed to deserialize JsonRpcError.");
+        return JsonSerializer.Deserialize<JsonRpcError>(jsonElement.GetRawText(), JsonUtilities.DefaultSerializerOptions) ?? throw new InvalidOperationException("Failed to deserialize JsonRpcError.");
     }
 
     // Serialize a JsonRpcError to JSON
     public string ToJson()
     {
-        return JsonSerializer.Serialize(this, new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        });
+        return JsonSerializer.Serialize(this, JsonUtilities.DefaultSerializerOptions);
     }
 }

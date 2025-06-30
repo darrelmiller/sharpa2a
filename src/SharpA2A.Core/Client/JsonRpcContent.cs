@@ -14,11 +14,7 @@ public class JsonRpcContent : HttpContent
 
         // Serialize the request directly to the stream
         stream = new MemoryStream();
-        JsonSerializer.Serialize(stream, request, new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = false
-        });
+        JsonSerializer.Serialize(stream, request, JsonUtilities.DefaultSerializerOptions);
         stream.Position = 0;
     }
 
@@ -28,11 +24,7 @@ public class JsonRpcContent : HttpContent
 
         // Serialize the response directly to the stream
         stream = new MemoryStream();
-        JsonSerializer.Serialize(stream, response, response.GetType(), new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = false
-        });
+        JsonSerializer.Serialize(stream, response, response.GetType(), JsonUtilities.DefaultSerializerOptions);
         stream.Position = 0;
     }
 

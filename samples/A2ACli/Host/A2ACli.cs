@@ -241,11 +241,7 @@ public static class A2ACli
 
         AgentTask? agentTask = null;
 
-        var jsonOptions = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-        };
+        var jsonOptions = JsonUtilities.DefaultSerializerOptions;
 
         // Process the task based on streaming capability
         Console.WriteLine($"Send task payload => {System.Text.Json.JsonSerializer.Serialize(payload, jsonOptions)}");
